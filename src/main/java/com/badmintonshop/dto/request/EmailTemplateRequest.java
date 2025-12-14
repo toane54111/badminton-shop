@@ -25,7 +25,7 @@ public class EmailTemplateRequest {
     private String name;
 
     @NotBlank(message = "Subject is required")
-    @Size(max = 255, message = "Subject must be at most 255 characters")
+    @Size(max = 500, message = "Subject must be at most 500 characters")
     private String subject;
 
     @NotBlank(message = "Body HTML is required")
