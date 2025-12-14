@@ -24,17 +24,9 @@ public class StaffUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Map StaffRole to Spring Security role
-        // SUPER_ADMIN -> ROLE_ADMIN, others -> ROLE_STAFF
-        String role;
-        switch (staff.getRole()) {
-            case SUPER_ADMIN:
-                role = "ROLE_ADMIN";
-                break;
-            default:
-                role = "ROLE_STAFF";
-                break;
-        }
+        // Use actual StaffRole enum name as Spring Security role
+        // e.g., SUPER_ADMIN -> ROLE_SUPER_ADMIN, SALE_STAFF -> ROLE_SALE_STAFF
+        String role = "ROLE_" + staff.getRole().name();
         return Collections.singletonList(new SimpleGrantedAuthority(role));
     }
 
