@@ -29,7 +29,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Admin - Activity Logs", description = "APIs for viewing staff activity logs")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class AdminActivityLogController {
 
     private final AuditService auditService;
@@ -40,35 +40,26 @@ public class AdminActivityLogController {
     @GetMapping
     @Operation(summary = "Get activity logs", description = "Retrieve activity logs with optional filters")
     public ResponseEntity<ApiResponse<Page<ActivityLogResponse>>> getLogs(
-            @Parameter(description = "Filter by staff ID")
-            @RequestParam(required = false) Long staffId,
-            
-            @Parameter(description = "Filter by entity type (e.g., Product, Order)")
-            @RequestParam(required = false) String entityType,
-            
-            @Parameter(description = "Filter by action (CREATE, UPDATE, DELETE, etc.)")
-            @RequestParam(required = false) ActivityAction action,
-            
-            @Parameter(description = "Filter from date (ISO format: yyyy-MM-ddTHH:mm:ss)")
-            @RequestParam(required = false) 
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            
-            @Parameter(description = "Filter to date (ISO format: yyyy-MM-ddTHH:mm:ss)")
-            @RequestParam(required = false) 
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
-            
-            @Parameter(description = "Page number (0-based)")
-            @RequestParam(defaultValue = "0") int page,
-            
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "20") int size) {
-        
+            @Parameter(description = "Filter by staff ID") @RequestParam(required = false) Long staffId,
+
+            @Parameter(description = "Filter by entity type (e.g., Product, Order)") @RequestParam(required = false) String entityType,
+
+            @Parameter(description = "Filter by action (CREATE, UPDATE, DELETE, etc.)") @RequestParam(required = false) ActivityAction action,
+
+            @Parameter(description = "Filter from date (ISO format: yyyy-MM-ddTHH:mm:ss)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+
+            @Parameter(description = "Filter to date (ISO format: yyyy-MM-ddTHH:mm:ss)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
+
         log.info("Fetching activity logs - staffId: {}, entityType: {}, action: {}, from: {}, to: {}",
                 staffId, entityType, action, from, to);
-        
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<ActivityLogResponse> logs = auditService.getLogs(staffId, entityType, action, from, to, pageable);
-        
+
         return ResponseEntity.ok(ApiResponse.success(logs));
     }
 
@@ -81,12 +72,12 @@ public class AdminActivityLogController {
             @PathVariable Long staffId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        
+
         log.info("Fetching activity logs for staff: {}", staffId);
-        
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<ActivityLogResponse> logs = auditService.getLogsByStaff(staffId, pageable);
-        
+
         return ResponseEntity.ok(ApiResponse.success(logs));
     }
 
@@ -99,12 +90,12 @@ public class AdminActivityLogController {
             @PathVariable String entityType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        
+
         log.info("Fetching activity logs for entity type: {}", entityType);
-        
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<ActivityLogResponse> logs = auditService.getLogsByEntity(entityType, pageable);
-        
+
         return ResponseEntity.ok(ApiResponse.success(logs));
     }
 
@@ -116,11 +107,11 @@ public class AdminActivityLogController {
     public ResponseEntity<ApiResponse<List<ActivityLogResponse>>> getEntityHistory(
             @PathVariable String entityType,
             @PathVariable Long entityId) {
-        
+
         log.info("Fetching history for {} with id: {}", entityType, entityId);
-        
+
         List<ActivityLogResponse> logs = auditService.getLogsForEntity(entityType, entityId);
-        
+
         return ResponseEntity.ok(ApiResponse.success(logs));
     }
 
@@ -132,12 +123,12 @@ public class AdminActivityLogController {
     public ResponseEntity<ApiResponse<Page<ActivityLogResponse>>> getRecentLogs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        
+
         log.info("Fetching recent activity logs");
-        
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<ActivityLogResponse> logs = auditService.getRecentLogs(pageable);
-        
+
         return ResponseEntity.ok(ApiResponse.success(logs));
     }
 
@@ -150,11 +141,11 @@ public class AdminActivityLogController {
             @PathVariable Long staffId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
-        
+
         log.info("Counting activities for staff {} from {} to {}", staffId, from, to);
-        
+
         long count = auditService.countByStaffInDateRange(staffId, from, to);
-        
+
         return ResponseEntity.ok(ApiResponse.success(count));
     }
 }

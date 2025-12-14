@@ -32,7 +32,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Admin - System Settings", description = "APIs for managing system settings")
-@PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class AdminSystemController {
 
     private final SystemSettingService settingService;
@@ -80,13 +80,13 @@ public class AdminSystemController {
             @Valid @RequestBody SettingsUpdateRequest request,
             Authentication authentication,
             HttpServletRequest httpRequest) {
-        
+
         log.info("Updating {} settings", request.getSettings().size());
-        
+
         Staff staff = getStaffFromAuth(authentication);
         Map<String, SystemSettingResponse> updated = settingService.updateSettings(
                 request.getSettings(), staff);
-        
+
         // Log audit
         auditService.logActivity(
                 staff,
@@ -96,9 +96,8 @@ public class AdminSystemController {
                 "Updated " + updated.size() + " settings",
                 null,
                 request.getSettings(),
-                httpRequest
-        );
-        
+                httpRequest);
+
         return ResponseEntity.ok(ApiResponse.success(
                 "Updated " + updated.size() + " settings successfully", updated));
     }
@@ -113,18 +112,18 @@ public class AdminSystemController {
             @RequestBody Map<String, String> body,
             Authentication authentication,
             HttpServletRequest httpRequest) {
-        
+
         String value = body.get("value");
         if (value == null) {
             return ResponseEntity.badRequest().body(
                     ApiResponse.error("Missing 'value' in request body"));
         }
-        
+
         log.info("Updating setting: {} = {}", key, value);
-        
+
         Staff staff = getStaffFromAuth(authentication);
         SystemSettingResponse updated = settingService.updateSetting(key, value, staff);
-        
+
         // Log audit
         auditService.logActivity(
                 staff,
@@ -134,9 +133,8 @@ public class AdminSystemController {
                 "Updated setting: " + key,
                 null,
                 value,
-                httpRequest
-        );
-        
+                httpRequest);
+
         return ResponseEntity.ok(ApiResponse.success("Setting updated successfully", updated));
     }
 

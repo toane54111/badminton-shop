@@ -32,7 +32,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Admin - Email Templates", description = "APIs for managing email templates")
-@PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class AdminEmailTemplateController {
 
     private final EmailTemplateService templateService;
@@ -81,11 +81,11 @@ public class AdminEmailTemplateController {
             @Valid @RequestBody EmailTemplateRequest request,
             Authentication authentication,
             HttpServletRequest httpRequest) {
-        
+
         log.info("Creating email template: {}", request.getTemplateKey());
-        
+
         EmailTemplateResponse created = templateService.create(request);
-        
+
         // Log audit
         Staff staff = getStaffFromAuth(authentication);
         auditService.logActivity(
@@ -96,9 +96,8 @@ public class AdminEmailTemplateController {
                 "Created email template: " + request.getTemplateKey(),
                 null,
                 request,
-                httpRequest
-        );
-        
+                httpRequest);
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Email template created successfully", created));
     }
@@ -113,13 +112,13 @@ public class AdminEmailTemplateController {
             @Valid @RequestBody EmailTemplateRequest request,
             Authentication authentication,
             HttpServletRequest httpRequest) {
-        
+
         log.info("Updating email template: {}", id);
-        
+
         // Get old value for audit
         EmailTemplateResponse oldTemplate = templateService.getById(id);
         EmailTemplateResponse updated = templateService.update(id, request);
-        
+
         // Log audit
         Staff staff = getStaffFromAuth(authentication);
         auditService.logActivity(
@@ -130,9 +129,8 @@ public class AdminEmailTemplateController {
                 "Updated email template: " + updated.getTemplateKey(),
                 oldTemplate,
                 request,
-                httpRequest
-        );
-        
+                httpRequest);
+
         return ResponseEntity.ok(ApiResponse.success("Email template updated successfully", updated));
     }
 
@@ -145,13 +143,13 @@ public class AdminEmailTemplateController {
             @PathVariable Long id,
             Authentication authentication,
             HttpServletRequest httpRequest) {
-        
+
         log.info("Deleting email template: {}", id);
-        
+
         // Get template info for audit before deletion
         EmailTemplateResponse template = templateService.getById(id);
         templateService.delete(id);
-        
+
         // Log audit
         Staff staff = getStaffFromAuth(authentication);
         auditService.logActivity(
@@ -162,9 +160,8 @@ public class AdminEmailTemplateController {
                 "Deleted email template: " + template.getTemplateKey(),
                 template,
                 null,
-                httpRequest
-        );
-        
+                httpRequest);
+
         return ResponseEntity.ok(ApiResponse.success("Email template deleted successfully"));
     }
 
@@ -176,7 +173,7 @@ public class AdminEmailTemplateController {
     public ResponseEntity<ApiResponse<Map<String, String>>> preview(
             @RequestParam String templateKey,
             @RequestBody Map<String, Object> sampleData) {
-        
+
         log.info("Previewing email template: {}", templateKey);
         Map<String, String> preview = templateService.preview(templateKey, sampleData);
         return ResponseEntity.ok(ApiResponse.success(preview));
@@ -191,11 +188,11 @@ public class AdminEmailTemplateController {
             @PathVariable Long id,
             Authentication authentication,
             HttpServletRequest httpRequest) {
-        
+
         log.info("Toggling active status for template: {}", id);
-        
+
         EmailTemplateResponse updated = templateService.toggleActive(id);
-        
+
         // Log audit
         Staff staff = getStaffFromAuth(authentication);
         auditService.logActivity(
@@ -206,9 +203,8 @@ public class AdminEmailTemplateController {
                 "Toggled template active status to: " + updated.getIsActive(),
                 null,
                 updated.getIsActive(),
-                httpRequest
-        );
-        
+                httpRequest);
+
         return ResponseEntity.ok(ApiResponse.success(
                 "Template " + (updated.getIsActive() ? "activated" : "deactivated"), updated));
     }
