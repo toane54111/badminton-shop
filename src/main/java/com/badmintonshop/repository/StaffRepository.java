@@ -71,30 +71,4 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
      * Count by role
      */
     long countByRole(StaffRole role);
-
-    /**
-     * Check if email exists excluding specific staff
-     */
-    boolean existsByEmailAndStaffIdNot(String email, Long staffId);
-
-    /**
-     * Find staff with filters (search, role, status) with pagination
-     */
-    @Query("SELECT s FROM Staff s " +
-           "WHERE (:search IS NULL OR :search = '' " +
-           "       OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "       OR LOWER(s.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (:role IS NULL OR s.role = :role) " +
-           "AND (:status IS NULL OR s.status = :status) " +
-           "ORDER BY s.createdAt DESC")
-    Page<Staff> findWithFilters(@Param("search") String search,
-                                @Param("role") StaffRole role,
-                                @Param("status") StaffStatus status,
-                                Pageable pageable);
-
-    /**
-     * Find staff by ID with permissions eagerly loaded
-     */
-    @Query("SELECT s FROM Staff s LEFT JOIN FETCH s.permissions WHERE s.staffId = :id")
-    Optional<Staff> findByIdWithPermissions(@Param("id") Long id);
 }
