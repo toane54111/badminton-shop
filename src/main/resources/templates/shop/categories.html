@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title>Danh mục</title>
+    <style>
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .category-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .category-card:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .subcategory-list {
+            list-style: none;
+            padding: 0;
+            margin: 0.5rem 0 0 0;
+        }
+
+        .subcategory-list li {
+            display: inline-block;
+            margin-right: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .subcategory-list a {
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+
+        .subcategory-list a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="container">
+                <h1>Danh mục sản phẩm</h1>
+                <p class="mb-0">Tìm sản phẩm theo danh mục</p>
+            </div>
+        </div>
+
+        <div class="container pb-5">
+            <div class="row">
+                <div class="col-md-6 col-lg-4" th:each="cat : ${categories}">
+                    <div class="category-card">
+                        <div class="d-flex align-items-start">
+                            <div class="category-icon me-3">
+                                <i th:class="${cat.icon ?: 'fas fa-folder'}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <a th:href="@{/products(categoryId=${cat.categoryId})}" class="text-decoration-none">
+                                    <div class="category-name" th:text="${cat.name}">Danh mục</div>
+                                </a>
+                                <p class="text-muted small mb-2" th:text="${cat.description}"
+                                    th:if="${cat.description}">Mô tả</p>
+
+                                <!-- Subcategories -->
+                                <ul class="subcategory-list"
+                                    th:if="${cat.children != null and !#lists.isEmpty(cat.children)}">
+                                    <li th:each="sub : ${cat.children}">
+                                        <a th:href="@{/products(categoryId=${sub.categoryId})}"
+                                            th:text="${sub.name}">Sub</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="col-12" th:if="${categories == null or #lists.isEmpty(categories)}">
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-folder-open fa-3x mb-3"></i>
+                        <h5>Chưa có danh mục</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

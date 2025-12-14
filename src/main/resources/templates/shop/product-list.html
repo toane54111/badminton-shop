@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title th:text="${pageTitle}">Sản phẩm</title>
+    <style>
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .product-image {
+            height: 200px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .product-price {
+            color: #e74c3c;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <div class="page-header">
+            <div class="container">
+                <h1 th:text="${pageTitle}">Sản phẩm</h1>
+            </div>
+        </div>
+
+        <div class="container pb-5">
+            <div class="row g-4">
+                <div class="col-6 col-md-4 col-lg-3" th:each="p : ${products}">
+                    <a th:href="@{/products/{slug}(slug=${p.slug})}" class="text-decoration-none">
+                        <div class="product-card">
+                            <img th:src="${p.primaryImageUrl ?: '/images/no-image.png'}" th:alt="${p.name}"
+                                class="product-image">
+                            <div class="p-3">
+                                <div class="fw-medium text-dark" th:text="${p.name}">Sản phẩm</div>
+                                <small class="text-muted" th:text="${p.brandName}">Brand</small>
+                                <div class="product-price mt-1"
+                                    th:text="${#numbers.formatDecimal(p.basePrice, 0, 'COMMA', 0, 'POINT')} + '₫'">
+                                    1,000,000₫</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-12" th:if="${products == null or #lists.isEmpty(products)}">
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-box-open fa-3x mb-3"></i>
+                        <h5>Không có sản phẩm</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

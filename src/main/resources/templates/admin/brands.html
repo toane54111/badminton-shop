@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý thương hiệu</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Quản lý thương hiệu</h1>
+                <p class="page-subtitle">Danh sách thương hiệu sản phẩm</p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#brandModal">
+                    <i class="fas fa-plus me-2"></i>Thêm thương hiệu
+                </button>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="keyword" name="keyword"
+                            placeholder="Tìm theo tên..." th:value="${param.keyword}">
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="ACTIVE">Hoạt động</option>
+                            <option value="INACTIVE">Không hoạt động</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search me-1"></i>Tìm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Brands Table -->
+        <div class="data-table-wrapper">
+            <div class="table-responsive">
+                <table class="table data-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Logo</th>
+                            <th>Tên thương hiệu</th>
+                            <th>Quốc gia</th>
+                            <th>Slug</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="brandsTable">
+                        <tr th:each="brand : ${brands.content}">
+                            <td>
+                                <img th:src="${brand.logoUrl ?: '/images/no-image.png'}" alt="" class="rounded"
+                                    style="width: 50px; height: 50px; object-fit: contain;">
+                            </td>
+                            <td>
+                                <div class="fw-medium" th:text="${brand.name}">Yonex</div>
+                                <small class="text-muted" th:if="${brand.websiteUrl}"
+                                    th:text="${brand.websiteUrl}">www.yonex.com</small>
+                            </td>
+                            <td th:text="${brand.country ?: 'N/A'}">Nhật Bản</td>
+                            <td><code th:text="${brand.slug}">yonex</code></td>
+                            <td>
+                                <span class="badge" th:classappend="${brand.isActive} ? 'bg-success' : 'bg-secondary'"
+                                    th:text="${brand.isActive} ? 'Hoạt động' : 'Không hoạt động'">Hoạt động</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-warning" title="Sửa"
+                                        th:onclick="'editBrand(' + ${brand.brandId} + ')'">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" title="Xóa"
+                                        th:onclick="'deleteBrand(' + ${brand.brandId} + ')'">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${brands.content == null or #lists.isEmpty(brands.content)}">
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <i class="fas fa-tags fa-3x mb-3 d-block"></i>
+                                Chưa có thương hiệu nào
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Brand Modal -->
+        <div class="modal fade" id="brandModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Thêm thương hiệu</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="brandForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="brandId">
+                            <div class="mb-3">
+                                <label class="form-label">Tên thương hiệu <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="brandName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Slug</label>
+                                <input type="text" class="form-control" id="brandSlug"
+                                    placeholder="Tự động tạo nếu để trống">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Logo URL</label>
+                                <input type="url" class="form-control" id="brandLogo" placeholder="https://...">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Quốc gia</label>
+                                <input type="text" class="form-control" id="brandCountry">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Website</label>
+                                <input type="url" class="form-control" id="brandWebsite" placeholder="https://...">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mô tả</label>
+                                <textarea class="form-control" id="brandDescription" rows="3"></textarea>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="brandActive" checked>
+                                <label class="form-check-label">Hoạt động</label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            const brandModal = new bootstrap.Modal(document.getElementById('brandModal'));
+
+            document.getElementById('brandForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                saveBrand();
+            });
+
+            function saveBrand() {
+                const id = document.getElementById('brandId').value;
+                const data = {
+                    name: document.getElementById('brandName').value,
+                    slug: document.getElementById('brandSlug').value || null,
+                    logoUrl: document.getElementById('brandLogo').value || null,
+                    country: document.getElementById('brandCountry').value || null,
+                    websiteUrl: document.getElementById('brandWebsite').value || null,
+                    description: document.getElementById('brandDescription').value || null,
+                    isActive: document.getElementById('brandActive').checked
+                };
+
+                if (!data.name) {
+                    alert('Vui lòng nhập tên thương hiệu');
+                    return;
+                }
+
+                const url = id ? '/admin/api/brands/' + id : '/admin/api/brands';
+                const method = id ? 'PUT' : 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (response.status === 403) {
+                            throw new Error('Bạn không có quyền thực hiện thao tác này. Chỉ SUPER_ADMIN mới có quyền.');
+                        }
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                throw new Error('Lỗi server: ' + response.status);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (result.error) {
+                            alert('Lỗi: ' + result.error);
+                        } else {
+                            brandModal.hide();
+                            location.reload();
+                        }
+                    })
+                    .catch(error => alert('Có lỗi xảy ra: ' + error.message));
+            }
+
+            function editBrand(id) {
+                fetch('/admin/api/brands/' + id)
+                    .then(response => response.json())
+                    .then(brand => {
+                        document.getElementById('modalTitle').textContent = 'Sửa thương hiệu';
+                        document.getElementById('brandId').value = brand.brandId;
+                        document.getElementById('brandName').value = brand.name;
+                        document.getElementById('brandSlug').value = brand.slug || '';
+                        document.getElementById('brandLogo').value = brand.logoUrl || '';
+                        document.getElementById('brandCountry').value = brand.country || '';
+                        document.getElementById('brandWebsite').value = brand.websiteUrl || '';
+                        document.getElementById('brandDescription').value = brand.description || '';
+                        document.getElementById('brandActive').checked = brand.isActive;
+                        brandModal.show();
+                    });
+            }
+
+            function deleteBrand(id) {
+                if (confirm('Bạn có chắc muốn xóa thương hiệu này?')) {
+                    fetch('/admin/api/brands/' + id, { method: 'DELETE' })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.message) {
+                                location.reload();
+                            } else if (result.error) {
+                                alert('Lỗi: ' + result.error);
+                            }
+                        });
+                }
+            }
+
+            // Reset modal when opening for new brand
+            document.getElementById('brandModal').addEventListener('show.bs.modal', function (e) {
+                if (!document.getElementById('brandId').value) {
+                    document.getElementById('modalTitle').textContent = 'Thêm thương hiệu';
+                    document.getElementById('brandForm').reset();
+                    document.getElementById('brandActive').checked = true;
+                }
+            });
+
+            document.getElementById('brandModal').addEventListener('hidden.bs.modal', function () {
+                document.getElementById('brandId').value = '';
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>
