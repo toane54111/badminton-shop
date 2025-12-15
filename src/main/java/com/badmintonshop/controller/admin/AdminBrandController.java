@@ -18,11 +18,12 @@ import java.util.Map;
 
 /**
  * Admin API Controller for Brand CRUD operations
+ * Requires products.* permissions (brands are part of product management)
  */
 @RestController
 @RequestMapping("/admin/api/brands")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'CONTENT_STAFF')")
+@PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.view')")
 public class AdminBrandController {
 
     private final BrandService brandService;
@@ -64,7 +65,7 @@ public class AdminBrandController {
      * POST /admin/api/brands
      */
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.create')")
     public ResponseEntity<?> createBrand(@Valid @RequestBody BrandDTO dto) {
         try {
             BrandDTO created = brandService.createBrand(dto);
@@ -79,7 +80,7 @@ public class AdminBrandController {
      * PUT /admin/api/brands/{id}
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.update')")
     public ResponseEntity<?> updateBrand(@PathVariable Long id, @Valid @RequestBody BrandDTO dto) {
         try {
             BrandDTO updated = brandService.updateBrand(id, dto);
@@ -94,7 +95,7 @@ public class AdminBrandController {
      * DELETE /admin/api/brands/{id}
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.delete')")
     public ResponseEntity<?> deleteBrand(@PathVariable Long id) {
         try {
             brandService.deleteBrand(id);

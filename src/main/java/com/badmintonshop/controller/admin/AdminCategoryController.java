@@ -21,11 +21,12 @@ import java.util.Map;
 
 /**
  * Admin API Controller for Category CRUD operations
+ * Requires products.* permissions (categories are part of product management)
  */
 @RestController
 @RequestMapping("/admin/api/categories")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'CONTENT_STAFF')")
+@PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.view')")
 public class AdminCategoryController {
 
     private final CategoryService categoryService;
@@ -77,7 +78,7 @@ public class AdminCategoryController {
      * POST /admin/api/categories
      */
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.create')")
     public ResponseEntity<?> createCategory(@Valid @RequestBody CategoryDTO dto) {
         try {
             CategoryDTO created = categoryService.createCategory(dto);
@@ -92,7 +93,7 @@ public class AdminCategoryController {
      * PUT /admin/api/categories/{id}
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.create')")
     public ResponseEntity<?> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryDTO dto) {
         try {
             CategoryDTO updated = categoryService.updateCategory(id, dto);
@@ -107,7 +108,7 @@ public class AdminCategoryController {
      * DELETE /admin/api/categories/{id}
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.delete')")
     public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
         try {
             categoryService.deleteCategory(id);

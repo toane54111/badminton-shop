@@ -34,7 +34,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/api/products")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'CONTENT_STAFF')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')")
 public class AdminProductController {
 
     private final ProductService productService;
@@ -46,8 +46,10 @@ public class AdminProductController {
     /**
      * Get all products with pagination and filtering
      * GET /admin/api/products
+     * Requires: products.view permission
      */
     @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.view')")
     public ResponseEntity<Page<ProductListDTO>> getAllProducts(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
@@ -86,39 +88,62 @@ public class AdminProductController {
     /**
      * Create new product
      * POST /admin/api/products
+     * Requires: products.create permission
      */
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.create')")
     public ResponseEntity<?> createProduct(@Valid @RequestBody ProductRequest request) {
         try {
             ProductResponse created = productService.createProduct(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            String message = "Lỗi dữ liệu: ";
+            if (e.getMessage() != null && e.getMessage().contains("uk_products_sku")) {
+                message = "SKU đã tồn tại. Vui lòng sử dụng SKU khác.";
+            } else if (e.getMessage() != null && e.getMessage().contains("uk_products_slug")) {
+                message = "Slug đã tồn tại. Vui lòng sử dụng tên sản phẩm khác.";
+            } else {
+                message += e.getMostSpecificCause().getMessage();
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", message));
         }
     }
 
     /**
      * Update product
      * PUT /admin/api/products/{id}
+     * Requires: products.update permission
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.update')")
     public ResponseEntity<?> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
         try {
             ProductResponse updated = productService.updateProduct(id, request);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            String message = "Lỗi dữ liệu: ";
+            if (e.getMessage() != null && e.getMessage().contains("uk_products_sku")) {
+                message = "SKU đã tồn tại. Vui lòng sử dụng SKU khác.";
+            } else if (e.getMessage() != null && e.getMessage().contains("uk_products_slug")) {
+                message = "Slug đã tồn tại. Vui lòng sử dụng tên sản phẩm khác.";
+            } else {
+                message += e.getMostSpecificCause().getMessage();
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", message));
         }
     }
 
     /**
      * Delete product (soft delete)
      * DELETE /admin/api/products/{id}
+     * Requires: products.delete permission
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.delete')")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         try {
             productService.deleteProduct(id);
@@ -154,7 +179,7 @@ public class AdminProductController {
      * POST /admin/api/products/{id}/images
      */
     @PostMapping("/{id}/images")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')")
     public ResponseEntity<?> uploadProductImage(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file,
@@ -176,7 +201,7 @@ public class AdminProductController {
      * POST /admin/api/products/{id}/images/url
      */
     @PostMapping("/{id}/images/url")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')")
     public ResponseEntity<?> addProductImageByUrl(
             @PathVariable Long id,
             @RequestParam String imageUrl,
@@ -195,7 +220,7 @@ public class AdminProductController {
      * DELETE /admin/api/products/{id}/images/{imageId}
      */
     @DeleteMapping("/{id}/images/{imageId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')")
     public ResponseEntity<?> deleteProductImage(@PathVariable Long id, @PathVariable Long imageId) {
         try {
             productImageService.deleteImage(id, imageId);
@@ -210,7 +235,7 @@ public class AdminProductController {
      * PUT /admin/api/products/{id}/images/{imageId}/primary
      */
     @PutMapping("/{id}/images/{imageId}/primary")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')")
     public ResponseEntity<?> setPrimaryImage(@PathVariable Long id, @PathVariable Long imageId) {
         try {
             productImageService.setPrimaryImage(id, imageId);
@@ -225,7 +250,7 @@ public class AdminProductController {
      * PUT /admin/api/products/{id}/images/reorder
      */
     @PutMapping("/{id}/images/reorder")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')")
     public ResponseEntity<?> reorderImages(@PathVariable Long id, @RequestBody List<Long> imageIds) {
         try {
             productImageService.reorderImages(id, imageIds);
@@ -251,7 +276,7 @@ public class AdminProductController {
      * POST /admin/api/products/{id}/variants
      */
     @PostMapping("/{id}/variants")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')")
     public ResponseEntity<?> createVariant(@PathVariable Long id, @Valid @RequestBody ProductVariantDTO dto) {
         try {
             ProductVariantDTO created = productVariantService.createVariant(id, dto);
@@ -266,7 +291,7 @@ public class AdminProductController {
      * PUT /admin/api/products/{id}/variants/{variantId}
      */
     @PutMapping("/{id}/variants/{variantId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')")
     public ResponseEntity<?> updateVariant(
             @PathVariable Long id,
             @PathVariable Long variantId,
@@ -284,7 +309,7 @@ public class AdminProductController {
      * DELETE /admin/api/products/{id}/variants/{variantId}
      */
     @DeleteMapping("/{id}/variants/{variantId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')")
     public ResponseEntity<?> deleteVariant(@PathVariable Long id, @PathVariable Long variantId) {
         try {
             productVariantService.deleteVariant(id, variantId);

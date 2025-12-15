@@ -20,11 +20,12 @@ import java.util.Map;
 
 /**
  * Admin API Controller for Inventory management
+ * Requires inventory.* permissions
  */
 @RestController
 @RequestMapping("/admin/api/inventory")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'WAREHOUSE_STAFF')")
+@PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.view')")
 public class AdminInventoryController {
 
     private final InventoryService inventoryService;
@@ -85,7 +86,7 @@ public class AdminInventoryController {
      * PUT /admin/api/inventory/{inventoryId}
      */
     @PutMapping("/{inventoryId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import') or hasAuthority('inventory.export')")
     public ResponseEntity<?> updateStock(
             @PathVariable Long inventoryId,
             @RequestParam int quantity,
@@ -103,7 +104,7 @@ public class AdminInventoryController {
      * POST /admin/api/inventory/adjust
      */
     @PostMapping("/adjust")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import') or hasAuthority('inventory.export')")
     public ResponseEntity<?> adjustStock(@Valid @RequestBody InventoryAdjustRequest request) {
         try {
             InventoryDTO updated = inventoryService.adjustStock(request);
@@ -118,7 +119,7 @@ public class AdminInventoryController {
      * POST /admin/api/inventory/{inventoryId}/restock
      */
     @PostMapping("/{inventoryId}/restock")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import')")
     public ResponseEntity<?> restockInventory(
             @PathVariable Long inventoryId,
             @RequestParam int quantity,

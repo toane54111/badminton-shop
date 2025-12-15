@@ -18,11 +18,12 @@ import java.util.Map;
 
 /**
  * Admin API Controller for Supplier CRUD and Product-Supplier management
+ * Requires inventory.* permissions (suppliers are part of inventory management)
  */
 @RestController
 @RequestMapping("/admin/api")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'WAREHOUSE_STAFF')")
+@PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.view')")
 public class AdminSupplierController {
 
     private final SupplierService supplierService;
@@ -74,7 +75,7 @@ public class AdminSupplierController {
      * POST /admin/api/suppliers
      */
     @PostMapping("/suppliers")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import')")
     public ResponseEntity<?> createSupplier(@Valid @RequestBody SupplierDTO dto) {
         try {
             SupplierDTO created = supplierService.createSupplier(dto);
@@ -89,7 +90,7 @@ public class AdminSupplierController {
      * PUT /admin/api/suppliers/{id}
      */
     @PutMapping("/suppliers/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import')")
     public ResponseEntity<?> updateSupplier(@PathVariable Long id, @Valid @RequestBody SupplierDTO dto) {
         try {
             SupplierDTO updated = supplierService.updateSupplier(id, dto);
@@ -104,7 +105,7 @@ public class AdminSupplierController {
      * DELETE /admin/api/suppliers/{id}
      */
     @DeleteMapping("/suppliers/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import')")
     public ResponseEntity<?> deleteSupplier(@PathVariable Long id) {
         try {
             supplierService.deleteSupplier(id);
@@ -130,7 +131,7 @@ public class AdminSupplierController {
      * POST /admin/api/products/{productId}/suppliers
      */
     @PostMapping("/products/{productId}/suppliers")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.update')")
     public ResponseEntity<?> addSupplierToProduct(
             @PathVariable Long productId,
             @RequestParam Long supplierId,
@@ -148,7 +149,7 @@ public class AdminSupplierController {
      * DELETE /admin/api/products/{productId}/suppliers/{supplierId}
      */
     @DeleteMapping("/products/{productId}/suppliers/{supplierId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.update')")
     public ResponseEntity<?> removeSupplierFromProduct(
             @PathVariable Long productId,
             @PathVariable Long supplierId) {
