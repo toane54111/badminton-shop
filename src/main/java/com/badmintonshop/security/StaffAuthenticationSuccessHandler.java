@@ -3,7 +3,6 @@ package com.badmintonshop.security;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -11,32 +10,28 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 /**
- * OAuth2 Success Handler - redirects to home with userId
+ * Custom authentication success handler for Staff/Admin login
+ * Redirects to admin dashboard with staffId in URL
  */
-@Component
-@Slf4j
-public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
+@Component("staffAuthenticationSuccessHandler")
+public class StaffAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
-        Long userId = null;
 
-        if (authentication.getPrincipal() instanceof CustomOAuth2User) {
-            CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
-            log.info("OAuth2 login successful for user: {}", oAuth2User.getFullName());
+        Long staffId = null;
 
-            // Update last login time
-            oAuth2User.getUser().recordLogin();
-
-            userId = oAuth2User.getUserId();
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof StaffUserDetails) {
+            staffId = ((StaffUserDetails) principal).getStaffId();
         }
 
         String redirectUrl;
-        if (userId != null) {
-            redirectUrl = "/?uid=" + userId;
+        if (staffId != null) {
+            redirectUrl = "/admin/dashboard?sid=" + staffId;
         } else {
-            redirectUrl = "/";
+            redirectUrl = "/admin/dashboard";
         }
 
         response.sendRedirect(redirectUrl);

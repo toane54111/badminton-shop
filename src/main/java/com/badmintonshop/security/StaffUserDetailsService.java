@@ -27,12 +27,17 @@ public class StaffUserDetailsService implements UserDetailsService {
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         log.debug("Loading staff by email: {}", email);
-        
+
+        // First find basic staff info
         Staff staff = staffRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.warn("Staff not found with email: {}", email);
                     return new UsernameNotFoundException("Không tìm thấy tài khoản với email: " + email);
                 });
+
+        // Then load with permissions
+        staff = staffRepository.findByIdWithPermissions(staff.getStaffId())
+                .orElse(staff);
 
         // Check staff status
         if (staff.getStatus() == StaffStatus.RESIGNED) {

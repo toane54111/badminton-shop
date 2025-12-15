@@ -34,16 +34,18 @@ public class AuditService {
      * Log a staff activity
      */
     @Transactional
-    @Async("emailExecutor") // Reuse async executor
-    public void logActivity(Staff staff, 
-                           ActivityAction action, 
-                           String entityType,
-                           Long entityId, 
-                           String description,
-                           Object oldValues, 
-                           Object newValues,
-                           HttpServletRequest request) {
+    public void logActivity(Staff staff,
+            ActivityAction action,
+            String entityType,
+            Long entityId,
+            String description,
+            Object oldValues,
+            Object newValues,
+            HttpServletRequest request) {
         try {
+            String ipAddress = getClientIp(request);
+            String userAgent = request != null ? request.getHeader("User-Agent") : null;
+
             StaffActivityLog activityLog = StaffActivityLog.builder()
                     .staff(staff)
                     .action(action)
@@ -52,13 +54,13 @@ public class AuditService {
                     .description(description)
                     .oldValues(toJson(oldValues))
                     .newValues(toJson(newValues))
-                    .ipAddress(getClientIp(request))
-                    .userAgent(request != null ? request.getHeader("User-Agent") : null)
+                    .ipAddress(ipAddress)
+                    .userAgent(userAgent)
                     .createdAt(LocalDateTime.now())
                     .build();
 
             logRepository.save(activityLog);
-            log.debug("Logged activity: {} {} {} by {}", action, entityType, entityId, 
+            log.debug("Logged activity: {} {} {} by {}", action, entityType, entityId,
                     staff != null ? staff.getEmail() : "unknown");
         } catch (Exception e) {
             log.error("Failed to log activity: {} {} {}", action, entityType, entityId, e);
@@ -69,11 +71,11 @@ public class AuditService {
      * Log activity (synchronous version)
      */
     @Transactional
-    public void logActivitySync(Staff staff, 
-                                ActivityAction action, 
-                                String entityType,
-                                Long entityId, 
-                                String description) {
+    public void logActivitySync(Staff staff,
+            ActivityAction action,
+            String entityType,
+            Long entityId,
+            String description) {
         StaffActivityLog activityLog = StaffActivityLog.builder()
                 .staff(staff)
                 .action(action)
@@ -90,14 +92,14 @@ public class AuditService {
      * Get activity logs with filters
      */
     public Page<ActivityLogResponse> getLogs(Long staffId,
-                                              String entityType,
-                                              ActivityAction action,
-                                              LocalDateTime fromDate,
-                                              LocalDateTime toDate,
-                                              Pageable pageable) {
-        log.debug("Fetching activity logs - staffId: {}, entityType: {}, action: {}", 
+            String entityType,
+            ActivityAction action,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            Pageable pageable) {
+        log.debug("Fetching activity logs - staffId: {}, entityType: {}, action: {}",
                 staffId, entityType, action);
-        
+
         return logRepository.findWithFilters(staffId, entityType, action, fromDate, toDate, pageable)
                 .map(ActivityLogResponse::fromEntity);
     }
@@ -165,7 +167,7 @@ public class AuditService {
         if (request == null) {
             return null;
         }
-        
+
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("Proxy-Client-IP");

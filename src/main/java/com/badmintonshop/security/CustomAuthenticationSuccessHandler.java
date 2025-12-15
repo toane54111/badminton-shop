@@ -3,7 +3,6 @@ package com.badmintonshop.security;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -11,25 +10,22 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 /**
- * OAuth2 Success Handler - redirects to home with userId
+ * Custom authentication success handler that redirects to home page with userId
  */
 @Component
-@Slf4j
-public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
+public class CustomAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
+
         Long userId = null;
 
-        if (authentication.getPrincipal() instanceof CustomOAuth2User) {
-            CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
-            log.info("OAuth2 login successful for user: {}", oAuth2User.getFullName());
-
-            // Update last login time
-            oAuth2User.getUser().recordLogin();
-
-            userId = oAuth2User.getUserId();
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserDetails) {
+            userId = ((CustomUserDetails) principal).getUserId();
+        } else if (principal instanceof CustomOAuth2User) {
+            userId = ((CustomOAuth2User) principal).getUserId();
         }
 
         String redirectUrl;

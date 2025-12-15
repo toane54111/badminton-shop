@@ -38,7 +38,7 @@ public class StaffService {
      */
     public Page<StaffResponse> getAll(String search, StaffRole role, StaffStatus status, Pageable pageable) {
         log.debug("Fetching staff with filters - search: {}, role: {}, status: {}", search, role, status);
-        
+
         return staffRepository.findWithFilters(search, role, status, pageable)
                 .map(staff -> {
                     List<String> permissions = permissionRepository.findPermissionKeysByStaffId(staff.getStaffId());
@@ -51,10 +51,10 @@ public class StaffService {
      */
     public StaffResponse getById(Long id) {
         log.debug("Fetching staff by id: {}", id);
-        
+
         Staff staff = staffRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + id));
-        
+
         List<String> permissions = permissionRepository.findPermissionKeysByStaffId(id);
         return StaffResponse.fromEntityWithPermissions(staff, permissions);
     }
@@ -65,17 +65,17 @@ public class StaffService {
     @Transactional
     public StaffResponse create(StaffRequest request) {
         log.info("Creating new staff: {}", request.getEmail());
-        
+
         // Check for duplicate email
         if (staffRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + request.getEmail());
         }
-        
+
         // Validate password for create
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new IllegalArgumentException("Password is required for new staff");
         }
-        
+
         Staff staff = Staff.builder()
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
@@ -86,10 +86,10 @@ public class StaffService {
                 .stringingSkillLevel(request.getStringingSkillLevel())
                 .dailyStringingCapacity(request.getDailyStringingCapacity())
                 .build();
-        
+
         Staff saved = staffRepository.save(staff);
         log.info("Created staff with id: {}", saved.getStaffId());
-        
+
         return StaffResponse.fromEntity(saved);
     }
 
@@ -99,31 +99,31 @@ public class StaffService {
     @Transactional
     public StaffResponse update(Long id, StaffRequest request) {
         log.info("Updating staff: {}", id);
-        
+
         Staff staff = staffRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + id));
-        
+
         // Check for duplicate email (excluding current staff)
         if (!staff.getEmail().equals(request.getEmail()) &&
                 staffRepository.existsByEmailAndStaffIdNot(request.getEmail(), id)) {
             throw new IllegalArgumentException("Email already exists: " + request.getEmail());
         }
-        
+
         staff.setEmail(request.getEmail());
         staff.setFullName(request.getFullName());
         staff.setPhone(request.getPhone());
         staff.setRole(request.getRole());
         staff.setStringingSkillLevel(request.getStringingSkillLevel());
         staff.setDailyStringingCapacity(request.getDailyStringingCapacity());
-        
+
         // Update password if provided
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             staff.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
-        
+
         Staff saved = staffRepository.save(staff);
         log.info("Updated staff: {}", saved.getStaffId());
-        
+
         List<String> permissions = permissionRepository.findPermissionKeysByStaffId(id);
         return StaffResponse.fromEntityWithPermissions(saved, permissions);
     }
@@ -134,14 +134,14 @@ public class StaffService {
     @Transactional
     public void softDelete(Long id) {
         log.info("Soft deleting staff: {}", id);
-        
+
         Staff staff = staffRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + id));
-        
+
         // Use softDelete from BaseEntity
         staff.softDelete();
         staffRepository.save(staff);
-        
+
         log.info("Soft deleted staff: {}", id);
     }
 
@@ -152,13 +152,13 @@ public class StaffService {
     @Transactional
     public StaffResponse updatePermissions(Long id, List<String> permissions) {
         log.info("Updating permissions for staff: {}", id);
-        
+
         Staff staff = staffRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + id));
-        
+
         // Delete existing permissions
         permissionRepository.deleteByStaffStaffId(id);
-        
+
         // Add new permissions
         for (String permissionKey : permissions) {
             StaffPermission permission = StaffPermission.builder()
@@ -168,9 +168,9 @@ public class StaffService {
                     .build();
             permissionRepository.save(permission);
         }
-        
+
         log.info("Updated {} permissions for staff: {}", permissions.size(), id);
-        
+
         return StaffResponse.fromEntityWithPermissions(staff, permissions);
     }
 
@@ -180,22 +180,22 @@ public class StaffService {
     @Transactional
     public StaffResponse updateStatus(Long id, StaffStatus status) {
         log.info("Updating status for staff {} to {}", id, status);
-        
+
         Staff staff = staffRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + id));
-        
+
         staff.setStatus(status);
-        
+
         // Set resigned_at if status is RESIGNED
         if (status == StaffStatus.RESIGNED) {
             staff.setResignedAt(LocalDateTime.now());
         } else {
             staff.setResignedAt(null);
         }
-        
+
         Staff saved = staffRepository.save(staff);
         log.info("Updated status for staff: {}", id);
-        
+
         List<String> permissions = permissionRepository.findPermissionKeysByStaffId(id);
         return StaffResponse.fromEntityWithPermissions(saved, permissions);
     }
