@@ -22,6 +22,7 @@ public class CategoryTreeDTO {
     private Long categoryId;
     private String name;
     private String slug;
+    private String description;
     private String icon;
     private String imageUrl;
     private CategoryType categoryType;
@@ -43,6 +44,7 @@ public class CategoryTreeDTO {
                 .categoryId(category.getCategoryId())
                 .name(category.getName())
                 .slug(category.getSlug())
+                .description(category.getDescription())
                 .icon(category.getIcon())
                 .imageUrl(category.getImageUrl())
                 .categoryType(category.getCategoryType())

@@ -28,14 +28,14 @@ public class StaffResponse {
     private String avatarUrl;
     private StaffRole role;
     private StaffStatus status;
-    
+
     // For STRINGING_STAFF
     private StringingSkillLevel stringingSkillLevel;
     private Integer dailyStringingCapacity;
-    
+
     // Permissions
     private List<String> permissions;
-    
+
     // Timestamps
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;

@@ -40,6 +40,6 @@ public class StaffRequest {
 
     // For STRINGING_STAFF only
     private StringingSkillLevel stringingSkillLevel;
-    
+
     private Integer dailyStringingCapacity;
 }
