@@ -5,7 +5,7 @@
 <header th:fragment="header" class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
     <div class="container">
         <!-- Logo -->
-        <a class="navbar-brand" th:href="@{/}">
+        <a class="navbar-brand" th:href="${currentUserId != null} ? @{/(uid=${currentUserId})} : @{/}">
             <i class="fas fa-shuttlecock me-2" style="color: var(--primary)"></i>
             <span class="fw-bold">Badminton Shop</span>
         </a>
@@ -20,38 +20,47 @@
             <!-- Main Menu -->
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/}">Trang chủ</a>
+                    <a class="nav-link" th:href="${currentUserId != null} ? @{/(uid=${currentUserId})} : @{/}">Trang
+                        chủ</a>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                         Sản phẩm
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">Vợt cầu lông</a></li>
-                        <li><a class="dropdown-item" href="#">Giày cầu lông</a></li>
-                        <li><a class="dropdown-item" href="#">Cước đan vợt</a></li>
-                        <li><a class="dropdown-item" href="#">Phụ kiện</a></li>
+                        <li><a class="dropdown-item"
+                                th:href="${currentUserId != null} ? @{/products(uid=${currentUserId})} : @{/products}">Tất
+                                cả sản phẩm</a></li>
                         <li>
                             <hr class="dropdown-divider">
                         </li>
-                        <li><a class="dropdown-item" href="#">Tất cả sản phẩm</a></li>
+                        <li><a class="dropdown-item"
+                                th:href="${currentUserId != null} ? @{/products/featured(uid=${currentUserId})} : @{/products/featured}">Sản
+                                phẩm nổi bật</a></li>
+                        <li><a class="dropdown-item"
+                                th:href="${currentUserId != null} ? @{/products/new-arrivals(uid=${currentUserId})} : @{/products/new-arrivals}">Sản
+                                phẩm mới</a></li>
+                        <li><a class="dropdown-item"
+                                th:href="${currentUserId != null} ? @{/products/best-sellers(uid=${currentUserId})} : @{/products/best-sellers}">Bán
+                                chạy nhất</a></li>
                     </ul>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Dịch vụ đan vợt</a>
+                    <a class="nav-link"
+                        th:href="${currentUserId != null} ? @{/categories(uid=${currentUserId})} : @{/categories}">Danh
+                        mục</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Khuyến mãi</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Liên hệ</a>
+                    <a class="nav-link"
+                        th:href="${currentUserId != null} ? @{/brands(uid=${currentUserId})} : @{/brands}">Thương
+                        hiệu</a>
                 </li>
             </ul>
 
             <!-- Search -->
-            <form class="d-flex me-3" th:action="@{/search}" method="get">
+            <form class="d-flex me-3" th:action="@{/products/search}" method="get">
                 <div class="input-group">
-                    <input type="search" name="q" class="form-control" placeholder="Tìm kiếm..."
+                    <input type="search" name="q" class="form-control" placeholder="Tìm kiếm sản phẩm..."
                         style="border-radius: 50px 0 0 50px;">
                     <button class="btn btn-outline-primary" type="submit" style="border-radius: 0 50px 50px 0;">
                         <i class="fas fa-search"></i>
@@ -60,38 +69,41 @@
             </form>
 
             <!-- Cart -->
-            <a th:href="@{/cart}" class="btn btn-icon position-relative me-2">
+            <a th:href="${currentUserId != null} ? @{/cart(uid=${currentUserId})} : @{/cart}"
+                class="btn btn-icon position-relative me-2">
                 <i class="fas fa-shopping-cart fa-lg"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count"
                     style="font-size: 0.6rem;">
                     0
                 </span>
             </a>
 
-            <!-- User Menu -->
-            <div sec:authorize="!isAuthenticated()">
+            <!-- User Menu - Not logged in as customer (show for anonymous OR staff/admin) -->
+            <div sec:authorize="!hasRole('USER')">
                 <a th:href="@{/login}" class="btn btn-outline-primary me-2">Đăng nhập</a>
                 <a th:href="@{/register}" class="btn btn-primary">Đăng ký</a>
             </div>
 
-            <div sec:authorize="isAuthenticated()" class="dropdown">
+            <!-- User Menu - Logged in as customer (only for users with ROLE_USER) -->
+            <div sec:authorize="hasRole('USER')" class="dropdown">
                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown">
                     <i class="fas fa-user-circle fa-lg me-2"></i>
                     <span sec:authentication="principal.fullName">User</span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                        <a class="dropdown-item" th:href="@{/account}">
+                        <a class="dropdown-item"
+                            th:href="${currentUserId != null} ? @{/users/profile(uid=${currentUserId})} : @{/users/profile}">
                             <i class="fas fa-user me-2"></i>Tài khoản
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item" th:href="@{/orders}">
+                        <a class="dropdown-item" th:href="@{/orders(uid=${currentUserId})}">
                             <i class="fas fa-shopping-bag me-2"></i>Đơn hàng
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item" th:href="@{/wishlist}">
+                        <a class="dropdown-item" th:href="@{/wishlist(uid=${currentUserId})}">
                             <i class="fas fa-heart me-2"></i>Yêu thích
                         </a>
                     </li>

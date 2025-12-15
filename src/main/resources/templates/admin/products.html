@@ -15,7 +15,8 @@
                 <p class="page-subtitle">Danh sách tất cả sản phẩm trong hệ thống</p>
             </div>
             <div>
-                <a th:href="@{/admin/products/new}" class="btn btn-primary">
+                <a th:href="${currentStaffId != null} ? @{/admin/products/new(sid=${currentStaffId})} : @{/admin/products/new}"
+                    class="btn btn-primary">
                     <i class="fas fa-plus me-2"></i>Thêm sản phẩm
                 </a>
             </div>
@@ -25,6 +26,7 @@
         <div class="card mb-4">
             <div class="card-body">
                 <form id="filterForm" class="row g-3">
+                    <input type="hidden" name="sid" th:value="${currentStaffId}" th:if="${currentStaffId != null}">
                     <div class="col-md-3">
                         <label class="form-label">Tìm kiếm</label>
                         <input type="text" class="form-control" id="keyword" name="keyword" placeholder="Tên, SKU..."
@@ -60,7 +62,8 @@
                         <button type="submit" class="btn btn-outline-primary me-2">
                             <i class="fas fa-search me-1"></i>Lọc
                         </button>
-                        <a th:href="@{/admin/products}" class="btn btn-outline-secondary">
+                        <a th:href="${currentStaffId != null} ? @{/admin/products(sid=${currentStaffId})} : @{/admin/products}"
+                            class="btn btn-outline-secondary">
                             <i class="fas fa-redo me-1"></i>Reset
                         </a>
                     </div>
@@ -111,7 +114,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a th:href="@{/admin/products/{id}(id=${product.productId})}"
+                                    <a th:href="${currentStaffId != null} ? @{/admin/products/{id}(id=${product.productId}, sid=${currentStaffId})} : @{/admin/products/{id}(id=${product.productId})}"
                                         class="btn btn-outline-primary" title="Chi tiết/Sửa">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -143,16 +146,20 @@
                 <nav>
                     <ul class="pagination mb-0">
                         <li class="page-item" th:classappend="${products.first} ? 'disabled'">
-                            <a class="page-link" th:href="@{/admin/products(page=${products.number - 1})}">
+                            <a class="page-link"
+                                th:href="${currentStaffId != null} ? @{/admin/products(page=${products.number - 1}, sid=${currentStaffId})} : @{/admin/products(page=${products.number - 1})}">
                                 <i class="fas fa-chevron-left"></i>
                             </a>
                         </li>
                         <li class="page-item" th:each="i : ${#numbers.sequence(0, products.totalPages - 1)}"
                             th:classappend="${i == products.number} ? 'active'">
-                            <a class="page-link" th:href="@{/admin/products(page=${i})}" th:text="${i + 1}">1</a>
+                            <a class="page-link"
+                                th:href="${currentStaffId != null} ? @{/admin/products(page=${i}, sid=${currentStaffId})} : @{/admin/products(page=${i})}"
+                                th:text="${i + 1}">1</a>
                         </li>
                         <li class="page-item" th:classappend="${products.last} ? 'disabled'">
-                            <a class="page-link" th:href="@{/admin/products(page=${products.number + 1})}">
+                            <a class="page-link"
+                                th:href="${currentStaffId != null} ? @{/admin/products(page=${products.number + 1}, sid=${currentStaffId})} : @{/admin/products(page=${products.number + 1})}">
                                 <i class="fas fa-chevron-right"></i>
                             </a>
                         </li>

@@ -5,7 +5,8 @@
 <aside th:fragment="sidebar" class="admin-sidebar" id="adminSidebar">
     <!-- Sidebar Header -->
     <div class="sidebar-header">
-        <a th:href="@{/admin/dashboard}" class="sidebar-logo">
+        <a th:href="${currentStaffId != null} ? @{/admin/dashboard(sid=${currentStaffId})} : @{/admin/dashboard}"
+            class="sidebar-logo">
             <i class="fas fa-shuttlecock"></i>
             <span>Admin Panel</span>
         </a>
@@ -16,7 +17,8 @@
         <!-- Main -->
         <div class="nav-section">
             <div class="nav-section-title">Main</div>
-            <a th:href="@{/admin/dashboard}" class="sidebar-link" data-page="dashboard">
+            <a th:href="${currentStaffId != null} ? @{/admin/dashboard(sid=${currentStaffId})} : @{/admin/dashboard}"
+                class="sidebar-link" data-page="dashboard">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
@@ -25,23 +27,28 @@
         <!-- Products -->
         <div class="nav-section">
             <div class="nav-section-title">Sản phẩm</div>
-            <a th:href="@{/admin/products}" class="sidebar-link" data-page="products">
+            <a th:href="${currentStaffId != null} ? @{/admin/products(sid=${currentStaffId})} : @{/admin/products}"
+                class="sidebar-link" data-page="products">
                 <i class="fas fa-box"></i>
                 <span>Sản phẩm</span>
             </a>
-            <a th:href="@{/admin/categories}" class="sidebar-link" data-page="categories">
+            <a th:href="${currentStaffId != null} ? @{/admin/categories(sid=${currentStaffId})} : @{/admin/categories}"
+                class="sidebar-link" data-page="categories">
                 <i class="fas fa-folder"></i>
                 <span>Danh mục</span>
             </a>
-            <a th:href="@{/admin/brands}" class="sidebar-link" data-page="brands">
+            <a th:href="${currentStaffId != null} ? @{/admin/brands(sid=${currentStaffId})} : @{/admin/brands}"
+                class="sidebar-link" data-page="brands">
                 <i class="fas fa-tags"></i>
                 <span>Thương hiệu</span>
             </a>
-            <a th:href="@{/admin/inventory}" class="sidebar-link" data-page="inventory">
+            <a th:href="${currentStaffId != null} ? @{/admin/inventory(sid=${currentStaffId})} : @{/admin/inventory}"
+                class="sidebar-link" data-page="inventory">
                 <i class="fas fa-warehouse"></i>
                 <span>Tồn kho</span>
             </a>
-            <a th:href="@{/admin/suppliers}" class="sidebar-link" data-page="suppliers">
+            <a th:href="${currentStaffId != null} ? @{/admin/suppliers(sid=${currentStaffId})} : @{/admin/suppliers}"
+                class="sidebar-link" data-page="suppliers">
                 <i class="fas fa-truck"></i>
                 <span>Nhà cung cấp</span>
             </a>
@@ -50,11 +57,13 @@
         <!-- Orders -->
         <div class="nav-section">
             <div class="nav-section-title">Đơn hàng</div>
-            <a th:href="@{/admin/orders}" class="sidebar-link" data-page="orders">
+            <a th:href="${currentStaffId != null} ? @{/admin/orders(sid=${currentStaffId})} : @{/admin/orders}"
+                class="sidebar-link" data-page="orders">
                 <i class="fas fa-shopping-cart"></i>
                 <span>Đơn hàng</span>
             </a>
-            <a th:href="@{/admin/stringing}" class="sidebar-link" data-page="stringing">
+            <a th:href="${currentStaffId != null} ? @{/admin/stringing(sid=${currentStaffId})} : @{/admin/stringing}"
+                class="sidebar-link" data-page="stringing">
                 <i class="fas fa-tools"></i>
                 <span>Đan vợt</span>
             </a>
@@ -63,11 +72,13 @@
         <!-- Customers -->
         <div class="nav-section">
             <div class="nav-section-title">Khách hàng</div>
-            <a th:href="@{/admin/customers}" class="sidebar-link" data-page="customers">
+            <a th:href="${currentStaffId != null} ? @{/admin/customers(sid=${currentStaffId})} : @{/admin/customers}"
+                class="sidebar-link" data-page="customers">
                 <i class="fas fa-users"></i>
                 <span>Khách hàng</span>
             </a>
-            <a th:href="@{/admin/reviews}" class="sidebar-link" data-page="reviews">
+            <a th:href="${currentStaffId != null} ? @{/admin/reviews(sid=${currentStaffId})} : @{/admin/reviews}"
+                class="sidebar-link" data-page="reviews">
                 <i class="fas fa-star"></i>
                 <span>Đánh giá</span>
             </a>
@@ -76,11 +87,13 @@
         <!-- Marketing -->
         <div class="nav-section">
             <div class="nav-section-title">Marketing</div>
-            <a th:href="@{/admin/coupons}" class="sidebar-link" data-page="coupons">
+            <a th:href="${currentStaffId != null} ? @{/admin/coupons(sid=${currentStaffId})} : @{/admin/coupons}"
+                class="sidebar-link" data-page="coupons">
                 <i class="fas fa-ticket-alt"></i>
                 <span>Mã giảm giá</span>
             </a>
-            <a th:href="@{/admin/banners}" class="sidebar-link" data-page="banners">
+            <a th:href="${currentStaffId != null} ? @{/admin/banners(sid=${currentStaffId})} : @{/admin/banners}"
+                class="sidebar-link" data-page="banners">
                 <i class="fas fa-images"></i>
                 <span>Banner</span>
             </a>
@@ -89,19 +102,23 @@
         <!-- Settings -->
         <div class="nav-section">
             <div class="nav-section-title">Cài đặt</div>
-            <a th:href="@{/admin/settings}" class="sidebar-link" data-page="settings">
+            <a th:href="${currentStaffId != null} ? @{/admin/settings(sid=${currentStaffId})} : @{/admin/settings}"
+                class="sidebar-link" data-page="settings">
                 <i class="fas fa-cog"></i>
                 <span>Cài đặt</span>
             </a>
-            <a th:href="@{/admin/email-templates}" class="sidebar-link" data-page="email-templates">
+            <a th:href="${currentStaffId != null} ? @{/admin/email-templates(sid=${currentStaffId})} : @{/admin/email-templates}"
+                class="sidebar-link" data-page="email-templates">
                 <i class="fas fa-envelope"></i>
                 <span>Email Templates</span>
             </a>
-            <a th:href="@{/admin/activity-logs}" class="sidebar-link" data-page="activity-logs">
+            <a th:href="${currentStaffId != null} ? @{/admin/activity-logs(sid=${currentStaffId})} : @{/admin/activity-logs}"
+                class="sidebar-link" data-page="activity-logs">
                 <i class="fas fa-history"></i>
                 <span>Activity Logs</span>
             </a>
-            <a th:href="@{/admin/staff}" class="sidebar-link" data-page="staff">
+            <a th:href="${currentStaffId != null} ? @{/admin/staff(sid=${currentStaffId})} : @{/admin/staff}"
+                class="sidebar-link" data-page="staff">
                 <i class="fas fa-user-shield"></i>
                 <span>Nhân viên</span>
             </a>

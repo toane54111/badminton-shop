@@ -74,7 +74,8 @@
                 <p class="page-subtitle" id="pageSubtitle">Chỉnh sửa thông tin sản phẩm</p>
             </div>
             <div>
-                <a th:href="@{/admin/products}" class="btn btn-outline-secondary me-2">
+                <a th:href="${currentStaffId != null} ? @{/admin/products(sid=${currentStaffId})} : @{/admin/products}"
+                    class="btn btn-outline-secondary me-2">
                     <i class="fas fa-arrow-left me-1"></i>Quay lại
                 </a>
                 <button class="btn btn-primary" onclick="saveProduct()">
@@ -293,6 +294,7 @@
     <th:block layout:fragment="scripts">
         <script th:inline="javascript">
             const productId = /*[[${productId}]]*/ null;
+            const currentStaffId = /*[[${currentStaffId}]]*/ null;
             const isNewProduct = !productId;
             let variantModal = null;
 
@@ -375,7 +377,8 @@
                     } else {
                         alert('Đã lưu sản phẩm!');
                         if (isNewProduct && result.productId) {
-                            window.location.href = '/admin/products/' + result.productId;
+                            const sidParam = currentStaffId ? '?sid=' + currentStaffId : '';
+                            window.location.href = '/admin/products/' + result.productId + sidParam;
                         }
                     }
                 } catch (error) {

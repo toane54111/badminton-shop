@@ -145,7 +145,8 @@
                             </select>
                         </div>
 
-                        <a th:href="@{/products}" class="btn btn-outline-secondary w-100">
+                        <a th:href="${currentUserId != null} ? @{/products(uid=${currentUserId})} : @{/products}"
+                            class="btn btn-outline-secondary w-100">
                             <i class="fas fa-redo me-1"></i>Xóa bộ lọc
                         </a>
                     </form>
@@ -160,7 +161,8 @@
 
                     <div class="row g-4">
                         <div class="col-md-4" th:each="p : ${products.content}">
-                            <a th:href="@{/products/{slug}(slug=${p.slug})}" class="text-decoration-none">
+                            <a th:href="${currentUserId != null} ? @{/products/{slug}(slug=${p.slug}, uid=${currentUserId})} : @{/products/{slug}(slug=${p.slug})}"
+                                class="text-decoration-none">
                                 <div class="product-card">
                                     <img th:src="${p.primaryImageUrl ?: '/images/no-image.png'}" th:alt="${p.name}"
                                         class="product-image">
@@ -193,17 +195,17 @@
                         <ul class="pagination justify-content-center">
                             <li class="page-item" th:classappend="${products.first} ? 'disabled'">
                                 <a class="page-link"
-                                    th:href="@{/products(page=${products.number - 1}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId})}">«</a>
+                                    th:href="${currentUserId != null} ? @{/products(page=${products.number - 1}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId}, uid=${currentUserId})} : @{/products(page=${products.number - 1}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId})}">«</a>
                             </li>
                             <li class="page-item" th:each="i : ${#numbers.sequence(0, products.totalPages - 1)}"
                                 th:classappend="${i == products.number} ? 'active'">
                                 <a class="page-link"
-                                    th:href="@{/products(page=${i}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId})}"
+                                    th:href="${currentUserId != null} ? @{/products(page=${i}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId}, uid=${currentUserId})} : @{/products(page=${i}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId})}"
                                     th:text="${i + 1}">1</a>
                             </li>
                             <li class="page-item" th:classappend="${products.last} ? 'disabled'">
                                 <a class="page-link"
-                                    th:href="@{/products(page=${products.number + 1}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId})}">»</a>
+                                    th:href="${currentUserId != null} ? @{/products(page=${products.number + 1}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId}, uid=${currentUserId})} : @{/products(page=${products.number + 1}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId})}">»</a>
                             </li>
                         </ul>
                     </nav>

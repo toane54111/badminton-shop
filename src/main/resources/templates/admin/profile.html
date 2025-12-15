@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Hồ sơ cá nhân</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">Hồ sơ cá nhân</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a th:href="@{/admin/dashboard}">Dashboard</a></li>
+                            <li class="breadcrumb-item active">Hồ sơ</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Profile Info Card -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="avatar-lg mx-auto mb-3">
+                                <img th:src="${staff.avatarUrl != null ? staff.avatarUrl : 'https://ui-avatars.com/api/?name=' + staff.fullName + '&background=667eea&color=fff&size=120'}"
+                                    alt="Avatar" class="rounded-circle"
+                                    style="width: 120px; height: 120px; object-fit: cover;">
+                            </div>
+                            <h4 class="mb-1" th:text="${staff.fullName}">Tên nhân viên</h4>
+                            <p class="text-muted mb-2" th:text="${staff.email}">email@example.com</p>
+                            <span class="badge" th:classappend="${staff.role.name() == 'SUPER_ADMIN' ? 'bg-danger' : 
+                                    staff.role.name() == 'SALE_STAFF' ? 'bg-success' :
+                                    staff.role.name() == 'STRINGING_STAFF' ? 'bg-info' :
+                                    staff.role.name() == 'WAREHOUSE_STAFF' ? 'bg-warning text-dark' : 'bg-purple'}"
+                                th:text="${staff.role.name()}">ROLE</span>
+
+                            <hr class="my-3">
+
+                            <div class="text-start">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-phone text-muted me-2" style="width: 20px;"></i>
+                                    <span
+                                        th:text="${staff.phone != null ? staff.phone : 'Chưa cập nhật'}">0123456789</span>
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-calendar text-muted me-2" style="width: 20px;"></i>
+                                    <span>Ngày tham gia: <span
+                                            th:text="${#temporals.format(staff.createdAt, 'dd/MM/yyyy')}">01/01/2024</span></span>
+                                </div>
+                                <div class="d-flex align-items-center" th:if="${staff.lastLoginAt != null}">
+                                    <i class="fas fa-clock text-muted me-2" style="width: 20px;"></i>
+                                    <span>Đăng nhập lần cuối: <span
+                                            th:text="${#temporals.format(staff.lastLoginAt, 'dd/MM/yyyy HH:mm')}">01/01/2024
+                                            12:00</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Profile & Change Password -->
+                <div class="col-lg-8">
+                    <!-- Edit Profile Card -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Cập nhật thông tin</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="profileForm">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="fullName" name="fullName"
+                                            th:value="${staff.fullName}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Số điện thoại</label>
+                                        <input type="text" class="form-control" id="phone" name="phone"
+                                            th:value="${staff.phone}" placeholder="0123456789">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" th:value="${staff.email}" disabled>
+                                    <small class="text-muted">Email không thể thay đổi</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>Lưu thay đổi
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Change Password Card -->
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-key me-2"></i>Đổi mật khẩu</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="passwordForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Mật khẩu hiện tại <span
+                                            class="text-danger">*</span></label>
+                                    <input type="password" class="form-control" id="currentPassword"
+                                        name="currentPassword" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Mật khẩu mới <span
+                                                class="text-danger">*</span></label>
+                                        <input type="password" class="form-control" id="newPassword" name="newPassword"
+                                            minlength="6" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Xác nhận mật khẩu <span
+                                                class="text-danger">*</span></label>
+                                        <input type="password" class="form-control" id="confirmPassword"
+                                            name="confirmPassword" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-key me-1"></i>Đổi mật khẩu
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            // Update profile
+            document.getElementById('profileForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const data = {
+                    fullName: document.getElementById('fullName').value,
+                    phone: document.getElementById('phone').value
+                };
+
+                try {
+                    const response = await fetch('/admin/api/profile', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert('Cập nhật thành công!');
+                        location.reload();
+                    } else {
+                        alert(result.error || 'Có lỗi xảy ra');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi cập nhật');
+                }
+            });
+
+            // Change password
+            document.getElementById('passwordForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (newPassword !== confirmPassword) {
+                    alert('Mật khẩu mới không khớp');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    alert('Mật khẩu phải có ít nhất 6 ký tự');
+                    return;
+                }
+
+                const data = {
+                    currentPassword: document.getElementById('currentPassword').value,
+                    password: newPassword,
+                    confirmPassword: confirmPassword
+                };
+
+                try {
+                    const response = await fetch('/admin/api/profile/change-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert('Đổi mật khẩu thành công!');
+                        document.getElementById('passwordForm').reset();
+                    } else {
+                        alert(result.error || 'Có lỗi xảy ra');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi đổi mật khẩu');
+                }
+            });
+        </script>
+    </th:block>
+
+    <style>
+        .bg-purple {
+            background-color: #6f42c1 !important;
+            color: white !important;
+        }
+    </style>
+</body>
+
+</html>

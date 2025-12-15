@@ -39,7 +39,7 @@
                     class="user-avatar">
                 <div class="user-info d-none d-md-block">
                     <div class="user-name" sec:authentication="principal.fullName">Admin</div>
-                    <div class="user-role" sec:authentication="principal.staff.role">ADMIN</div>
+                    <div class="user-role" sec:authentication="principal.role">ADMIN</div>
                 </div>
                 <i class="fas fa-chevron-down ms-2 text-muted d-none d-md-inline"></i>
             </div>
@@ -49,12 +49,14 @@
                     <div class="text-muted small" sec:authentication="principal.username">admin@shop.vn</div>
                 </li>
                 <li>
-                    <a class="dropdown-item" th:href="@{/admin/profile}">
+                    <a class="dropdown-item"
+                        th:href="${currentStaffId != null} ? @{/admin/profile(sid=${currentStaffId})} : @{/admin/profile}">
                         <i class="fas fa-user me-2"></i>Hồ sơ
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item" th:href="@{/admin/settings}">
+                    <a class="dropdown-item"
+                        th:href="${currentStaffId != null} ? @{/admin/settings(sid=${currentStaffId})} : @{/admin/settings}">
                         <i class="fas fa-cog me-2"></i>Cài đặt
                     </a>
                 </li>

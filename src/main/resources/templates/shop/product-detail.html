@@ -125,10 +125,10 @@
 
                         <div class="mb-3">
                             <span class="product-price"
-                                th:text="${#numbers.formatDecimal(product.sellingPrice, 0, 'COMMA', 0, 'POINT')} + '₫'">1,500,000₫</span>
+                                th:text="${#numbers.formatDecimal(product.currentPrice, 0, 'COMMA', 0, 'POINT')} + '₫'">1,500,000₫</span>
                             <span class="original-price ms-2"
-                                th:if="${product.originalPrice != null and product.originalPrice > product.sellingPrice}"
-                                th:text="${#numbers.formatDecimal(product.originalPrice, 0, 'COMMA', 0, 'POINT')} + '₫'">2,000,000₫</span>
+                                th:if="${product.compareAtPrice != null and product.compareAtPrice > product.currentPrice}"
+                                th:text="${#numbers.formatDecimal(product.compareAtPrice, 0, 'COMMA', 0, 'POINT')} + '₫'">2,000,000₫</span>
                         </div>
 
                         <p class="text-muted mb-4" th:text="${product.shortDescription}">Mô tả ngắn</p>
@@ -136,19 +136,29 @@
                         <!-- Variants -->
                         <div class="mb-4" th:if="${product.variants != null and !#lists.isEmpty(product.variants)}">
                             <label class="form-label">Phân loại:</label>
-                            <div class="d-flex gap-2 flex-wrap">
+                            <div class="d-flex gap-2 flex-wrap" id="variantButtons">
                                 <button th:each="v : ${product.variants}" type="button"
-                                    class="btn btn-outline-secondary" th:text="${v.variantName}">Variant</button>
+                                    class="btn btn-outline-secondary variant-btn" th:data-variant-id="${v.variantId}"
+                                    th:data-variant-price="${v.finalPrice}" th:text="${v.variantName}"
+                                    onclick="selectVariant(this)">Variant</button>
                             </div>
+                            <input type="hidden" id="selectedVariantId" name="variantId" value="">
                         </div>
 
-                        <div class="d-flex gap-3 mb-4">
-                            <div class="input-group" style="width: 140px;">
-                                <button class="btn btn-outline-secondary" type="button">-</button>
-                                <input type="number" class="form-control text-center" value="1" min="1">
-                                <button class="btn btn-outline-secondary" type="button">+</button>
+                        <div class="d-flex gap-3 mb-4 align-items-center">
+                            <div class="input-group" style="width: 180px;">
+                                <button class="btn btn-outline-secondary px-3" type="button"
+                                    style="font-size: 1.25rem; font-weight: bold;"
+                                    onclick="adjustQuantity(-1)">−</button>
+                                <input type="number" id="quantityInput" class="form-control text-center" value="1"
+                                    min="1" max="99" onchange="validateQuantity()"
+                                    style="font-size: 1.1rem; font-weight: 600;">
+                                <button class="btn btn-outline-secondary px-3" type="button"
+                                    style="font-size: 1.25rem; font-weight: bold;"
+                                    onclick="adjustQuantity(1)">+</button>
                             </div>
-                            <button class="btn btn-add-cart flex-grow-1">
+                            <button class="btn btn-add-cart flex-grow-1" onclick="addToCart()"
+                                th:data-product-id="${product.productId}">
                                 <i class="fas fa-cart-plus me-2"></i>Thêm vào giỏ
                             </button>
                         </div>
@@ -172,11 +182,11 @@
             </div>
 
             <!-- Description -->
-            <div class="row mt-5" th:if="${product.description}">
+            <div class="row mt-5" th:if="${product.fullDescription}">
                 <div class="col-12">
                     <div class="product-info-card">
                         <h4 class="mb-4">Mô tả sản phẩm</h4>
-                        <div th:utext="${product.description}">Nội dung mô tả</div>
+                        <div th:utext="${product.fullDescription}">Nội dung mô tả</div>
                     </div>
                 </div>
             </div>
@@ -186,7 +196,8 @@
                 <h4 class="mb-4">Sản phẩm liên quan</h4>
                 <div class="row g-3">
                     <div class="col-6 col-md-3" th:each="p : ${relatedProducts}">
-                        <a th:href="@{/products/{slug}(slug=${p.slug})}" class="text-decoration-none">
+                        <a th:href="${currentUserId != null} ? @{/products/{slug}(slug=${p.slug}, uid=${currentUserId})} : @{/products/{slug}(slug=${p.slug})}"
+                            class="text-decoration-none">
                             <div class="related-product">
                                 <img th:src="${p.primaryImageUrl ?: '/images/no-image.png'}" th:alt="${p.name}">
                                 <div class="p-3">
@@ -202,6 +213,153 @@
             </div>
         </div>
     </main>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            // Quantity adjustment
+            function adjustQuantity(delta) {
+                const input = document.getElementById('quantityInput');
+                if (!input) return;
+                let value = parseInt(input.value) || 1;
+                value += delta;
+                if (value < 1) value = 1;
+                if (value > 99) value = 99;
+                input.value = value;
+            }
+
+            function validateQuantity() {
+                const input = document.getElementById('quantityInput');
+                if (!input) return;
+                let value = parseInt(input.value) || 1;
+                if (value < 1) value = 1;
+                if (value > 99) value = 99;
+                input.value = value;
+            }
+
+            // Variant selection
+            function selectVariant(button) {
+                // Remove active class from all variant buttons
+                document.querySelectorAll('.variant-btn').forEach(btn => {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline-secondary');
+                });
+
+                // Add active class to selected button
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-primary');
+
+                // Store selected variant ID
+                const variantId = button.dataset.variantId;
+                const hiddenInput = document.getElementById('selectedVariantId');
+                if (hiddenInput) {
+                    hiddenInput.value = variantId;
+                }
+
+                // Update price if variant has different price
+                const variantPrice = button.dataset.variantPrice;
+                if (variantPrice && parseFloat(variantPrice) > 0) {
+                    const priceElement = document.querySelector('.product-price');
+                    if (priceElement) {
+                        const formattedPrice = new Intl.NumberFormat('vi-VN').format(parseFloat(variantPrice));
+                        priceElement.textContent = formattedPrice + '₫';
+                    }
+                }
+            }
+
+            // Add to cart
+            function addToCart() {
+                const addCartBtn = document.querySelector('.btn-add-cart');
+                if (!addCartBtn) return;
+
+                const productId = addCartBtn.dataset.productId;
+                const quantityInput = document.getElementById('quantityInput');
+                const quantity = quantityInput ? parseInt(quantityInput.value) || 1 : 1;
+                const variantInput = document.getElementById('selectedVariantId');
+                const variantId = variantInput ? variantInput.value : null;
+
+                // Check if variant selection is required
+                const variantButtons = document.querySelectorAll('.variant-btn');
+                if (variantButtons.length > 0 && !variantId) {
+                    showToast('Vui lòng chọn phân loại sản phẩm', 'warning');
+                    return;
+                }
+
+                const data = {
+                    productId: parseInt(productId),
+                    quantity: quantity
+                };
+
+                if (variantId) {
+                    data.variantId = parseInt(variantId);
+                }
+
+                fetch('/api/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else if (response.status === 401) {
+                            window.location.href = '/login';
+                            throw new Error('Unauthorized');
+                        }
+                        throw new Error('Failed to add to cart');
+                    })
+                    .then(data => {
+                        showToast('Đã thêm sản phẩm vào giỏ hàng!', 'success');
+                        // Update cart count in header if exists
+                        updateCartCount();
+                    })
+                    .catch(error => {
+                        if (error.message !== 'Unauthorized') {
+                            showToast('Không thể thêm vào giỏ hàng. Vui lòng thử lại.', 'error');
+                        }
+                    });
+            }
+
+            function updateCartCount() {
+                fetch('/api/cart/count')
+                    .then(response => response.json())
+                    .then(count => {
+                        const cartBadge = document.querySelector('.cart-count');
+                        if (cartBadge) {
+                            cartBadge.textContent = count;
+                        }
+                    })
+                    .catch(() => { });
+            }
+
+            function showToast(message, type) {
+                // Create toast element
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger'} position-fixed`;
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; animation: fadeIn 0.3s;';
+                toast.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'times-circle'} me-2"></i>
+                    <span>${message}</span>
+                    <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+            `;
+                document.body.appendChild(toast);
+
+                // Auto remove after 3 seconds
+                setTimeout(() => toast.remove(), 3000);
+            }
+
+            // Auto-select first variant if available
+            document.addEventListener('DOMContentLoaded', function () {
+                const firstVariant = document.querySelector('.variant-btn');
+                if (firstVariant) {
+                    selectVariant(firstVariant);
+                }
+            });
+        </script>
+    </th:block>
 </body>
 
 </html>
