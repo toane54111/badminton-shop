@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Dashboard</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="page-title">Dashboard</h1>
+                <p class="page-subtitle">Chào mừng trở lại, <span sec:authentication="principal.fullName">Admin</span>!
+                </p>
+            </div>
+            <div>
+                <span class="text-muted"
+                    th:text="${#temporals.format(#temporals.createNow(), 'EEEE, dd MMMM yyyy', new java.util.Locale('vi'))}">Thứ
+                    Hai, 01 Tháng 1 2024</span>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <!-- Total Orders -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" th:text="${totalOrders} ?: '0'">156</div>
+                        <div class="stat-label">Đơn hàng</div>
+                        <div class="stat-change up">
+                            <i class="fas fa-arrow-up me-1"></i>12% so với tháng trước
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Revenue -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value"
+                            th:text="${#numbers.formatDecimal(totalRevenue ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'">
+                            25,500,000₫</div>
+                        <div class="stat-label">Doanh thu</div>
+                        <div class="stat-change up">
+                            <i class="fas fa-arrow-up me-1"></i>8% so với tháng trước
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Customers -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" th:text="${totalCustomers} ?: '0'">1,234</div>
+                        <div class="stat-label">Khách hàng</div>
+                        <div class="stat-change up">
+                            <i class="fas fa-arrow-up me-1"></i>15% so với tháng trước
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Stringing -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon danger">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" th:text="${pendingStringing} ?: '0'">8</div>
+                        <div class="stat-label">Đan vợt chờ xử lý</div>
+                        <div class="stat-change down">
+                            <i class="fas fa-arrow-down me-1"></i>5% so với tuần trước
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Row -->
+        <div class="row g-4">
+            <!-- Recent Orders -->
+            <div class="col-lg-8">
+                <div class="data-table-wrapper">
+                    <div class="data-table-header">
+                        <h5 class="mb-0">Đơn hàng gần đây</h5>
+                        <a th:href="@{/admin/orders}" class="btn btn-sm btn-outline-primary">
+                            Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table data-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mã đơn</th>
+                                    <th>Khách hàng</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ngày đặt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="order : ${recentOrders}" th:if="${recentOrders}">
+                                    <td>
+                                        <a th:href="@{/admin/orders/{id}(id=${order.id})}"
+                                            th:text="${order.orderNumber}" class="fw-medium">#ORD001</a>
+                                    </td>
+                                    <td th:text="${order.customerName}">Nguyễn Văn A</td>
+                                    <td
+                                        th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + '₫'">
+                                        1,500,000₫</td>
+                                    <td>
+                                        <span class="badge"
+                                            th:classappend="${order.status.name() == 'PENDING'} ? 'bg-warning' : 
+                                                          (${order.status.name() == 'CONFIRMED'} ? 'bg-info' : 
+                                                          (${order.status.name() == 'DELIVERED'} ? 'bg-success' : 'bg-secondary'))"
+                                            th:text="${order.status}">Pending</span>
+                                    </td>
+                                    <td th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy')}">01/01/2024</td>
+                                </tr>
+                                <!-- Placeholder if no orders -->
+                                <tr th:if="${recentOrders == null or #lists.isEmpty(recentOrders)}">
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                        Chưa có đơn hàng nào
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">Thao tác nhanh</h5>
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/admin/products/new}" class="btn btn-outline-primary">
+                                <i class="fas fa-plus me-2"></i>Thêm sản phẩm mới
+                            </a>
+                            <a th:href="@{/admin/orders}" class="btn btn-outline-primary">
+                                <i class="fas fa-shopping-cart me-2"></i>Xử lý đơn hàng
+                            </a>
+                            <a th:href="@{/admin/stringing}" class="btn btn-outline-primary">
+                                <i class="fas fa-tools me-2"></i>Quản lý đan vợt
+                            </a>
+                            <a th:href="@{/admin/coupons}" class="btn btn-outline-primary">
+                                <i class="fas fa-ticket-alt me-2"></i>Tạo mã giảm giá
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Info -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Thông tin hệ thống</h5>
+                        <ul class="list-unstyled mb-0">
+                            <li class="d-flex justify-content-between py-2 border-bottom">
+                                <span class="text-muted">Phiên bản</span>
+                                <span class="fw-medium">1.0.0</span>
+                            </li>
+                            <li class="d-flex justify-content-between py-2 border-bottom">
+                                <span class="text-muted">Server</span>
+                                <span class="fw-medium text-success">
+                                    <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>Online
+                                </span>
+                            </li>
+                            <li class="d-flex justify-content-between py-2">
+                                <span class="text-muted">Cập nhật lần cuối</span>
+                                <span class="fw-medium"
+                                    th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}">01/01/2024
+                                    12:00</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

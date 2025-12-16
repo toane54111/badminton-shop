@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Thùng rác</title>
+    <style>
+        .trash-tabs {
+            border-bottom: 2px solid #eee;
+            margin-bottom: 1.5rem;
+        }
+
+        .trash-tabs .nav-link {
+            color: #666;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+        }
+
+        .trash-tabs .nav-link.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            background: none;
+        }
+
+        .trash-item {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .trash-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .trash-item-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .trash-item-info img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .trash-item-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .trash-item-meta {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title"><i class="fas fa-trash-alt me-2"></i>Thùng rác</h1>
+                <p class="page-subtitle">Các mục đã xóa có thể khôi phục hoặc xóa vĩnh viễn</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs trash-tabs" id="trashTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="products-tab" data-bs-toggle="tab"
+                    data-bs-target="#products-content" type="button">
+                    <i class="fas fa-box me-1"></i>Sản phẩm <span class="badge bg-secondary ms-1"
+                        id="productCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-content"
+                    type="button">
+                    <i class="fas fa-folder me-1"></i>Danh mục <span class="badge bg-secondary ms-1"
+                        id="categoryCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="brands-tab" data-bs-toggle="tab" data-bs-target="#brands-content"
+                    type="button">
+                    <i class="fas fa-tags me-1"></i>Thương hiệu <span class="badge bg-secondary ms-1"
+                        id="brandCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="banners-tab" data-bs-toggle="tab" data-bs-target="#banners-content"
+                    type="button">
+                    <i class="fas fa-images me-1"></i>Banner <span class="badge bg-secondary ms-1"
+                        id="bannerCount">0</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="trashTabContent">
+            <!-- Products Tab -->
+            <div class="tab-pane fade show active" id="products-content" role="tabpanel">
+                <div id="productsList"></div>
+            </div>
+
+            <!-- Categories Tab -->
+            <div class="tab-pane fade" id="categories-content" role="tabpanel">
+                <div id="categoriesList"></div>
+            </div>
+
+            <!-- Brands Tab -->
+            <div class="tab-pane fade" id="brands-content" role="tabpanel">
+                <div id="brandsList"></div>
+            </div>
+
+            <!-- Banners Tab -->
+            <div class="tab-pane fade" id="banners-content" role="tabpanel">
+                <div id="bannersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Xác nhận xóa vĩnh viễn</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn xóa vĩnh viễn mục này?</p>
+                    <p class="text-danger fw-bold"><i class="fas fa-warning me-1"></i>Hành động này không thể hoàn tác!
+                    </p>
+                    <p id="confirmItemName" class="text-muted"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xóa vĩnh viễn</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            let confirmModal;
+            let pendingDelete = { type: null, id: null };
+
+            document.addEventListener('DOMContentLoaded', function () {
+                confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+                loadProducts();
+                loadCategories();
+                loadBrands();
+                loadBanners();
+
+                document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+                    if (pendingDelete.type && pendingDelete.id) {
+                        hardDelete(pendingDelete.type, pendingDelete.id);
+                        confirmModal.hide();
+                    }
+                });
+            });
+
+            // ===== PRODUCTS =====
+            async function loadProducts() {
+                try {
+                    const response = await fetch('/admin/api/trash/products');
+                    const data = await response.json();
+                    document.getElementById('productCount').textContent = data.totalElements || 0;
+                    renderProducts(data.content || []);
+                } catch (error) {
+                    console.error('Error loading products:', error);
+                }
+            }
+
+            function renderProducts(products) {
+                const container = document.getElementById('productsList');
+                if (products.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-box-open"></i>
+                            <h5>Không có sản phẩm nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = products.map(p => `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <img src="${p.primaryImageUrl || '/images/no-image.png'}" alt="">
+                            <div>
+                                <div class="trash-item-name">${p.name}</div>
+                                <div class="trash-item-meta">SKU: ${p.sku || 'N/A'} | ${p.categoryName || 'Không có danh mục'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-success" onclick="restore('products', ${p.productId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('products', ${p.productId}, '${p.name.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // ===== CATEGORIES =====
+            async function loadCategories() {
+                try {
+                    const response = await fetch('/admin/api/trash/categories');
+                    const data = await response.json();
+                    document.getElementById('categoryCount').textContent = data.totalElements || 0;
+                    renderCategories(data.content || []);
+                } catch (error) {
+                    console.error('Error loading categories:', error);
+                }
+            }
+
+            function renderCategories(categories) {
+                const container = document.getElementById('categoriesList');
+                if (categories.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <h5>Không có danh mục nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = categories.map(c => `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <img src="${c.imageUrl || '/images/no-image.png'}" alt="">
+                            <div>
+                                <div class="trash-item-name">${c.name}</div>
+                                <div class="trash-item-meta">Slug: ${c.slug || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-success" onclick="restore('categories', ${c.categoryId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('categories', ${c.categoryId}, '${c.name.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // ===== BRANDS =====
+            async function loadBrands() {
+                try {
+                    const response = await fetch('/admin/api/trash/brands');
+                    const data = await response.json();
+                    document.getElementById('brandCount').textContent = data.totalElements || 0;
+                    renderBrands(data.content || []);
+                } catch (error) {
+                    console.error('Error loading brands:', error);
+                }
+            }
+
+            function renderBrands(brands) {
+                const container = document.getElementById('brandsList');
+                if (brands.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-tags"></i>
+                            <h5>Không có thương hiệu nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = brands.map(b => `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <img src="${b.logoUrl || '/images/no-image.png'}" alt="">
+                            <div>
+                                <div class="trash-item-name">${b.name}</div>
+                                <div class="trash-item-meta">${b.country || 'Không có quốc gia'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-success" onclick="restore('brands', ${b.brandId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('brands', ${b.brandId}, '${b.name.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // ===== BANNERS =====
+            async function loadBanners() {
+                try {
+                    const response = await fetch('/admin/api/trash/banners');
+                    const data = await response.json();
+                    document.getElementById('bannerCount').textContent = data.totalElements || 0;
+                    renderBanners(data.content || []);
+                } catch (error) {
+                    console.error('Error loading banners:', error);
+                }
+            }
+
+            function renderBanners(banners) {
+                const container = document.getElementById('bannersList');
+                if (banners.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-images"></i>
+                            <h5>Không có banner nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = banners.map(b => `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <img src="${b.imageUrl || '/images/no-image.png'}" alt="">
+                            <div>
+                                <div class="trash-item-name">${b.title}</div>
+                                <div class="trash-item-meta">Vị trí: ${b.position || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-success" onclick="restore('banners', ${b.bannerId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('banners', ${b.bannerId}, '${b.title.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // ===== RESTORE =====
+            async function restore(type, id) {
+                try {
+                    const response = await fetch(`/admin/api/trash/${type}/${id}/restore`, {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    if (result.error) {
+                        alert('Lỗi: ' + result.error);
+                    } else {
+                        alert(result.message || 'Đã khôi phục thành công!');
+                        if (type === 'products') loadProducts();
+                        else if (type === 'categories') loadCategories();
+                        else if (type === 'brands') loadBrands();
+                        else if (type === 'banners') loadBanners();
+                    }
+                } catch (error) {
+                    alert('Có lỗi xảy ra: ' + error.message);
+                }
+            }
+
+            // ===== HARD DELETE =====
+            function confirmHardDelete(type, id, name) {
+                pendingDelete = { type, id };
+                document.getElementById('confirmItemName').textContent = 'Mục: ' + name;
+                confirmModal.show();
+            }
+
+            async function hardDelete(type, id) {
+                try {
+                    const response = await fetch(`/admin/api/trash/${type}/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const result = await response.json();
+                    if (result.error) {
+                        alert('Lỗi: ' + result.error);
+                    } else {
+                        alert(result.message || 'Đã xóa vĩnh viễn!');
+                        if (type === 'products') loadProducts();
+                        else if (type === 'categories') loadCategories();
+                        else if (type === 'brands') loadBrands();
+                        else if (type === 'banners') loadBanners();
+                    }
+                } catch (error) {
+                    alert('Có lỗi xảy ra: ' + error.message);
+                }
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

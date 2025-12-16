@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ sơ cá nhân - Badminton Shop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            padding-top: 80px;
+        }
+
+        .navbar-brand {
+            color: var(--primary) !important;
+        }
+
+        .profile-sidebar {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .profile-img-container {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 30px;
+            text-align: center;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 4px solid white;
+            object-fit: cover;
+            background: white;
+        }
+
+        .nav-pills .nav-link {
+            color: #495057;
+            padding: 15px 20px;
+            border-radius: 0;
+            border-left: 4px solid transparent;
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: #f8f9fa;
+            color: var(--primary);
+            border-left-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .nav-pills .nav-link:hover {
+            background-color: #f8f9fa;
+        }
+
+        .profile-content {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            min-height: 500px;
+        }
+
+        .form-label {
+            font-weight: 500;
+        }
+
+        .playing-badge {
+            font-size: 0.8rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background: #e9ecef;
+            color: #495057;
+            margin-right: 5px;
+        }
+
+        .address-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .address-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .address-card.default {
+            border-color: var(--primary);
+            background-color: #f8f9fa;
+        }
+
+        .default-badge {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar (Copied from home) -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-shuttlecock me-2"></i>Badminton Shop
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Trang chủ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Sản phẩm</a>
+                    </li>
+                    <!-- Logged in -->
+                    <li sec:authorize="isAuthenticated()" class="nav-item dropdown ms-3">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="me-2" sec:authentication="principal.user.fullName">User</span>
+                            <i class="fas fa-user-circle fa-xl text-secondary"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                            <li><a class="dropdown-item" href="/users/profile"><i
+                                        class="fas fa-user me-2 text-muted"></i>Tài khoản</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-shopping-bag me-2 text-muted"></i>Đơn
+                                    hàng</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="m-0">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center">
+                    <img th:src="${profile.avatarUrl ?: 'https://via.placeholder.com/150'}" alt="Avatar"
+                        class="rounded-circle me-4"
+                        style="width: 80px; height: 80px; object-fit: cover; border: 3px solid var(--primary);">
+                    <div>
+                        <h4 class="mb-1" th:text="${profile.fullName}">User Name</h4>
+                        <p class="text-muted mb-0" th:text="${profile.email}">user@example.com</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                <ul class="nav nav-tabs card-header-tabs" id="profileTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile"
+                            type="button" role="tab" aria-selected="true">
+                            <i class="fas fa-user me-2"></i>Thông tin cá nhân
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="playing-tab" data-bs-toggle="tab" data-bs-target="#playing"
+                            type="button" role="tab" aria-selected="false">
+                            <i class="fas fa-table-tennis me-2"></i>Hồ sơ chơi cầu
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address"
+                            type="button" role="tab" aria-selected="false">
+                            <i class="fas fa-map-marker-alt me-2"></i>Sổ địa chỉ
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security"
+                            type="button" role="tab" aria-selected="false">
+                            <i class="fas fa-lock me-2"></i>Đổi mật khẩu
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="tab-content" id="profileTabsContent">
+                    <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                        <h5 class="mb-4">Thông tin cá nhân</h5>
+                        <form id="profileForm">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Họ và tên</label>
+                                    <input type="text" class="form-control" name="fullName"
+                                        th:value="${profile.fullName}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Số điện thoại</label>
+                                    <input type="tel" class="form-control" name="phone" th:value="${profile.phone}"
+                                        pattern="(0[3|5|7|8|9])+([0-9]{8})" title="Số điện thoại không hợp lệ">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" th:value="${profile.email}" disabled
+                                        readonly>
+                                    <div class="form-text">Không thể thay đổi địa chỉ email</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Ngày sinh</label>
+                                    <input type="date" class="form-control" name="dateOfBirth"
+                                        th:value="${profile.dateOfBirth}">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label d-block">Giới tính</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="gender" id="genderMale"
+                                        value="MALE"
+                                        th:checked="${profile.gender != null && profile.gender.name() == 'MALE'}">
+                                    <label class="form-check-label" for="genderMale">Nam</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="gender" id="genderFemale"
+                                        value="FEMALE"
+                                        th:checked="${profile.gender != null && profile.gender.name() == 'FEMALE'}">
+                                    <label class="form-check-label" for="genderFemale">Nữ</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="gender" id="genderOther"
+                                        value="OTHER"
+                                        th:checked="${profile.gender != null && profile.gender.name() == 'OTHER'}">
+                                    <label class="form-check-label" for="genderOther">Khác</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="btnUpdateProfile">
+                                <i class="fas fa-save me-2"></i>Lưu thay đổi
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade" id="playing" role="tabpanel" aria-labelledby="playing-tab">
+                        <h5 class="mb-4">Hồ sơ chơi cầu (Tư vấn vợt)</h5>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>Thông tin này giúp hệ thống tư vấn sản phẩm phù hợp
+                            nhất cho bạn.
+                        </div>
+                        <form id="playingProfileForm">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Phong cách chơi</label>
+                                    <select class="form-select" name="playingStyle">
+                                        <option value="">-- Chọn phong cách --</option>
+                                        <option value="">-- Chọn phong cách --</option>
+                                        <option value="ATTACK"
+                                            th:selected="${profile.playingStyle != null && profile.playingStyle.name() == 'ATTACK'}">
+                                            Hăng hái (ATTACK)</option>
+                                        <option value="DEFENSE"
+                                            th:selected="${profile.playingStyle != null && profile.playingStyle.name() == 'DEFENSE'}">
+                                            Phòng thủ (Defense)</option>
+                                        <option value="ALL_ROUND"
+                                            th:selected="${profile.playingStyle != null && profile.playingStyle.name() == 'ALL_ROUND'}">
+                                            Đa năng (All-round)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Trình độ</label>
+                                    <select class="form-select" name="skillLevel">
+                                        <option value="">-- Chọn trình độ --</option>
+                                        <option value="BEGINNER"
+                                            th:selected="${profile.skillLevel != null && profile.skillLevel.name() == 'BEGINNER'}">
+                                            Mới chơi (Beginner)</option>
+                                        <option value="INTERMEDIATE"
+                                            th:selected="${profile.skillLevel != null && profile.skillLevel.name() == 'INTERMEDIATE'}">
+                                            Trung bình (Intermediate)</option>
+                                        <option value="ADVANCED"
+                                            th:selected="${profile.skillLevel != null && profile.skillLevel.name() == 'ADVANCED'}">
+                                            Khá (Advanced)</option>
+                                        <option value="PROFESSIONAL"
+                                            th:selected="${profile.skillLevel != null && profile.skillLevel.name() == 'PROFESSIONAL'}">
+                                            Chuyên nghiệp (Pro)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Trọng lượng vợt ưa thích</label>
+                                    <select class="form-select" name="preferredRacketWeight">
+                                        <option value="">-- Chọn trọng lượng --</option>
+                                        <option th:each="w : ${ {'2U','3U','4U','5U'} }"
+                                                th:value="${w}"
+                                                th:text="${w}"
+                                                th:selected="${profile.preferredRacketWeight == w}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Sức căng Min (lbs)</label>
+                                    <input type="number" step="0.5" class="form-control" name="preferredTensionMin"
+                                        th:value="${profile.preferredTensionMin}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Sức căng Max (lbs)</label>
+                                    <input type="number" step="0.5" class="form-control" name="preferredTensionMax"
+                                        th:value="${profile.preferredTensionMax}">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Loại cước ưa thích</label>
+                                <input type="text" class="form-control" name="preferredStringType"
+                                    th:value="${profile.preferredStringType}"
+                                    placeholder="Ví dụ: Yonex BG65, Lining No.1...">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Cập nhật hồ sơ
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade" id="address" role="tabpanel" aria-labelledby="address-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="mb-0">Sổ địa chỉ</h5>
+                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#addressModal" onclick="resetAddressForm()">
+                                <i class="fas fa-plus me-2"></i>Thêm địa chỉ mới
+                            </button>
+                        </div>
+
+                        <div id="addressList">
+                            <div th:each="addr : ${addresses}" class="address-card"
+                                th:classappend="${addr.isDefault} ? 'default' : ''">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <span th:text="${addr.recipientName}">Name</span>
+                                            <span th:if="${addr.isDefault}" class="default-badge"><i
+                                                    class="fas fa-check-circle me-1"></i>Mặc định</span>
+                                            <span class="badge bg-light text-dark ms-2"
+                                                th:text="${addr.addressType}">HOME</span>
+                                        </h6>
+                                        <p class="mb-1 text-muted small"><i
+                                                class="fas fa-phone me-2"></i>[[${addr.recipientPhone}]]</p>
+                                        <p class="mb-1 small">[[${addr.fullAddress}]]</p>
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-link text-secondary p-0" type="button"
+                                            data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#"
+                                                    th:onclick="'editAddress(' + ${addr.addressId} + ')'">Sửa</a></li>
+                                            <li th:unless="${addr.isDefault}">
+                                                <a class="dropdown-item" href="#"
+                                                    th:onclick="'setDefaultAddress(' + ${addr.addressId} + ')'">Đặt làm
+                                                    mặc định</a>
+                                            </li>
+                                            <li th:unless="${addr.isDefault}">
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li th:unless="${addr.isDefault}">
+                                                <a class="dropdown-item text-danger" href="#"
+                                                    th:onclick="'deleteAddress(' + ${addr.addressId} + ')'">Xóa</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <input type="hidden" th:id="'addr-json-' + ${addr.addressId}"
+                                    th:value="${'{&quot;recipientName&quot;:&quot;' + addr.recipientName + '&quot;,&quot;recipientPhone&quot;:&quot;' + addr.recipientPhone + '&quot;,&quot;addressLine&quot;:&quot;' + addr.addressLine + '&quot;,&quot;city&quot;:&quot;' + addr.city + '&quot;,&quot;district&quot;:&quot;' + addr.district + '&quot;,&quot;ward&quot;:&quot;' + addr.ward + '&quot;,&quot;addressType&quot;:&quot;' + addr.addressType + '&quot;,&quot;isDefault&quot;:' + addr.isDefault + '}'}" />
+                            </div>
+                            <div th:if="${#lists.isEmpty(addresses)}" class="text-center py-4 text-muted">
+                                <i class="fas fa-map-marked-alt fa-3x mb-3 opacity-50"></i>
+                                <p>Bạn chưa lưu địa chỉ nào.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
+                        <h5 class="mb-4">Đổi mật khẩu</h5>
+                        <form id="changePasswordForm">
+                            <div class="mb-3">
+                                <label class="form-label">Mật khẩu hiện tại</label>
+                                <input type="password" class="form-control" name="currentPassword" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mật khẩu mới</label>
+                                <input type="password" class="form-control" name="password" required minlength="8">
+                                <div class="form-text">Mật khẩu phải từ 8 ký tự, gồm chữ hoa, chữ thường và số.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Xác nhận mật khẩu mới</label>
+                                <input type="password" class="form-control" name="confirmPassword" required>
+                            </div>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-key me-2"></i>Đổi mật khẩu
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addressModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addressModalTitle">Thêm địa chỉ mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addressForm">
+                        <input type="hidden" id="addressId" name="addressId">
+                        <div class="mb-3">
+                            <label class="form-label">Tên người nhận</label>
+                            <input type="text" class="form-control" name="recipientName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Số điện thoại</label>
+                            <input type="tel" class="form-control" name="recipientPhone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Địa chỉ cụ thể (Số nhà, đường)</label>
+                            <input type="text" class="form-control" name="addressLine" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Tỉnh/TP</label>
+                                <input type="text" class="form-control" name="city" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Quận/Huyện</label>
+                                <input type="text" class="form-control" name="district" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Phường/Xã</label>
+                                <input type="text" class="form-control" name="ward">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Loại địa chỉ</label>
+                            <select class="form-select" name="addressType">
+                                <option value="HOME">Nhà riêng</option>
+                                <option value="OFFICE">Văn phòng</option>
+                                <option value="OTHER">Khác</option>
+                            </select>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="isDefault" id="isDefault">
+                            <label class="form-check-label" for="isDefault">Đặt làm mặc định</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveAddress">Lưu địa chỉ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toastTitle">Thông báo</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                Action successful.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // CSRF Token logic
+        const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+        const csrfHeader = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+        const fetchWithCsrf = async (url, options = {}) => {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+                [csrfHeader]: csrfToken
+            };
+            return fetch(url, { ...options, headers });
+        };
+
+        const showToast = (message, title = 'Thông báo', isError = false) => {
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            const toastEl = document.getElementById('liveToast');
+            if (isError) toastEl.classList.add('text-danger');
+            else toastEl.classList.remove('text-danger');
+
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        };
+
+        const formDataToJson = (form) => {
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => {
+                // Convert empty strings to null to avoid validation/deserialization errors
+                if (value === '') {
+                    data[key] = null;
+                } else {
+                    data[key] = value;
+                }
+            });
+            return data;
+        };
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = formDataToJson(e.target);
+            try {
+                // Use fetchWithCsrf
+                const res = await fetchWithCsrf('/api/users/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+
+                // Handle different response types (JSON or Text)
+                const text = await res.text();
+                let result = {};
+                try { result = JSON.parse(text); } catch (e) { }
+
+                if (res.ok) {
+                    showToast('Cập nhật thông tin thành công');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    let errorMessage = result.message || text || 'Cập nhật thất bại';
+                    if (result.errors) {
+                        errorMessage += ':';
+                        for (const [key, value] of Object.entries(result.errors)) {
+                            errorMessage += `\n- ${value}`;
+                        }
+                    }
+                    showToast(errorMessage, 'Lỗi', true);
+                }
+            } catch (err) {
+                showToast('Lỗi kết nối: ' + err.message, 'Lỗi', true);
+            }
+        });
+
+        // Playing Profile Update
+        document.getElementById('playingProfileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = formDataToJson(e.target);
+            try {
+                const res = await fetchWithCsrf('/api/users/playing-profile', {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    showToast('Cập nhật hồ sơ chơi cầu thành công');
+                } else {
+                    showToast('Cập nhật thất bại', 'Lỗi', true);
+                }
+            } catch (err) {
+                showToast('Lỗi kết nối', 'Lỗi', true);
+            }
+        });
+
+        // Change Password
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = formDataToJson(e.target);
+            if (data.password !== data.confirmPassword) {
+                showToast('Mật khẩu xác nhận không khớp', 'Lỗi', true);
+                return;
+            }
+            try {
+                const res = await fetchWithCsrf('/api/users/change-password', {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    showToast('Đổi mật khẩu thành công');
+                    e.target.reset();
+                } else {
+                    const text = await res.text();
+                    let result = {};
+                    try { result = JSON.parse(text); } catch (e) { }
+                    showToast('Lỗi: ' + (result.message || text || 'Đổi mật khẩu thất bại'), 'Lỗi', true);
+                }
+            } catch (err) {
+                showToast('Có lỗi xảy ra', 'Lỗi', true);
+            }
+        });
+
+        // Address Handling
+        const addressModal = new bootstrap.Modal(document.getElementById('addressModal'));
+
+        document.getElementById('btnSaveAddress').addEventListener('click', async () => {
+            const form = document.getElementById('addressForm');
+            const data = formDataToJson(form);
+            data.isDefault = form.isDefault.checked;
+
+            const id = document.getElementById('addressId').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/users/addresses/${id}` : '/api/users/addresses';
+
+            try {
+                const res = await fetchWithCsrf(url, {
+                    method: method,
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    addressModal.hide();
+                    showToast(id ? 'Cập nhật địa chỉ thành công' : 'Thêm địa chỉ thành công');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showToast('Lỗi khi lưu địa chỉ', 'Lỗi', true);
+                }
+            } catch (err) {
+                showToast('Lỗi kết nối', 'Lỗi', true);
+            }
+        });
+
+        function resetAddressForm() {
+            document.getElementById('addressForm').reset();
+            document.getElementById('addressId').value = '';
+            document.getElementById('addressModalTitle').textContent = 'Thêm địa chỉ mới';
+        }
+
+        function editAddress(id) {
+            try {
+                const jsonStr = document.getElementById('addr-json-' + id).value;
+                const data = JSON.parse(jsonStr);
+
+                fetch('/api/users/addresses').then(r => r.json()).then(list => {
+                    const addr = list.find(a => a.addressId === id);
+                    if (addr) {
+                        const form = document.getElementById('addressForm');
+                        document.getElementById('addressId').value = addr.addressId;
+                        form.recipientName.value = addr.recipientName;
+                        form.recipientPhone.value = addr.recipientPhone;
+                        form.addressLine.value = addr.addressLine;
+                        form.city.value = addr.city;
+                        form.district.value = addr.district;
+                        form.ward.value = addr.ward;
+                        form.addressType.value = addr.addressType;
+                        form.isDefault.checked = addr.isDefault;
+
+                        document.getElementById('addressModalTitle').textContent = 'Sửa địa chỉ';
+                        addressModal.show();
+                    }
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function deleteAddress(id) {
+            if (!confirm('Bạn có chắc muốn xóa địa chỉ này?')) return;
+            try {
+                const res = await fetchWithCsrf(`/api/users/addresses/${id}`, { method: 'DELETE' });
+                if (res.ok) location.reload();
+                else showToast('Không thể xóa địa chỉ', 'Lỗi', true);
+            } catch (e) { showToast('Lỗi kết nối', 'Lỗi', true); }
+        }
+
+        async function setDefaultAddress(id) {
+            try {
+                const res = await fetchWithCsrf(`/api/users/addresses/${id}/default`, { method: 'PUT' });
+                if (res.ok) location.reload();
+                else showToast('Lỗi khi đặt mặc định', 'Lỗi', true);
+            } catch (e) { showToast('Lỗi kết nối', 'Lỗi', true); }
+        }
+    </script>
+</body>
+
+</html>

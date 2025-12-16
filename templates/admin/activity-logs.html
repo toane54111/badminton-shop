@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Nhật ký hoạt động</title>
+    <style>
+        .activity-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .filter-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .activity-item {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .activity-item:hover {
+            background: #f8f9fa;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .activity-icon.create {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .activity-icon.update {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .activity-icon.delete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .activity-icon.view {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .activity-icon.login {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .activity-time {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .activity-entity {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .pagination-container {
+            padding: 1rem;
+            border-top: 1px solid #f0f0f0;
+            background: #fafafa;
+            border-radius: 0 0 12px 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Nhật ký hoạt động</h1>
+                <p class="page-subtitle">Theo dõi mọi thao tác trong hệ thống</p>
+            </div>
+            <button class="btn btn-outline-primary" onclick="exportLogs()">
+                <i class="fas fa-download me-2"></i>Xuất báo cáo
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-card">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Nhân viên</label>
+                    <select class="form-select" id="filterStaff">
+                        <option value="">Tất cả nhân viên</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Loại entity</label>
+                    <select class="form-select" id="filterEntityType">
+                        <option value="">Tất cả</option>
+                        <option value="Product">Sản phẩm</option>
+                        <option value="Order">Đơn hàng</option>
+                        <option value="User">Khách hàng</option>
+                        <option value="SystemSetting">Cài đặt</option>
+                        <option value="EmailTemplate">Mẫu email</option>
+                        <option value="Coupon">Mã giảm giá</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Hành động</label>
+                    <select class="form-select" id="filterAction">
+                        <option value="">Tất cả</option>
+                        <option value="CREATE">Tạo mới</option>
+                        <option value="UPDATE">Cập nhật</option>
+                        <option value="DELETE">Xóa</option>
+                        <option value="VIEW">Xem</option>
+                        <option value="LOGIN">Đăng nhập</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Từ ngày</label>
+                    <input type="date" class="form-control" id="filterFrom">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Đến ngày</label>
+                    <input type="date" class="form-control" id="filterTo">
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-primary w-100" onclick="loadLogs()">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity List -->
+        <div class="activity-card">
+            <!-- Loading -->
+            <div id="loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Đang tải...</span>
+                </div>
+            </div>
+
+            <!-- Activities -->
+            <div id="activityList" style="display: none;"></div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center py-5" style="display: none;">
+                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                <h5>Không có hoạt động nào</h5>
+                <p class="text-muted">Thử thay đổi bộ lọc để xem kết quả khác</p>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container" id="paginationContainer" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted" id="pageInfo">Trang 1 / 1</span>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary" id="prevBtn" onclick="prevPage()" disabled>
+                            <i class="fas fa-chevron-left"></i> Trước
+                        </button>
+                        <button class="btn btn-outline-secondary" id="nextBtn" onclick="nextPage()">
+                            Sau <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            let currentPage = 0;
+            let totalPages = 0;
+            const pageSize = 20;
+
+            // Action icons and labels
+            const actionConfig = {
+                'CREATE': { icon: 'plus', class: 'create', label: 'Tạo mới' },
+                'UPDATE': { icon: 'edit', class: 'update', label: 'Cập nhật' },
+                'DELETE': { icon: 'trash', class: 'delete', label: 'Xóa' },
+                'VIEW': { icon: 'eye', class: 'view', label: 'Xem' },
+                'LOGIN': { icon: 'sign-in-alt', class: 'login', label: 'Đăng nhập' },
+                'LOGOUT': { icon: 'sign-out-alt', class: 'view', label: 'Đăng xuất' }
+            };
+
+            document.addEventListener('DOMContentLoaded', function () {
+                // Set default date range (last 7 days)
+                const today = new Date();
+                const weekAgo = new Date(today - 7 * 24 * 60 * 60 * 1000);
+                document.getElementById('filterTo').value = formatDate(today);
+                document.getElementById('filterFrom').value = formatDate(weekAgo);
+
+                loadLogs();
+            });
+
+            function formatDate(date) {
+                return date.toISOString().split('T')[0];
+            }
+
+            async function loadLogs() {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('activityList').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'none';
+
+                try {
+                    const params = new URLSearchParams({
+                        page: currentPage,
+                        size: pageSize
+                    });
+
+                    const staffId = document.getElementById('filterStaff').value;
+                    const entityType = document.getElementById('filterEntityType').value;
+                    const action = document.getElementById('filterAction').value;
+                    const from = document.getElementById('filterFrom').value;
+                    const to = document.getElementById('filterTo').value;
+
+                    if (staffId) params.append('staffId', staffId);
+                    if (entityType) params.append('entityType', entityType);
+                    if (action) params.append('action', action);
+                    if (from) params.append('from', from + 'T00:00:00');
+                    if (to) params.append('to', to + 'T23:59:59');
+
+                    const response = await fetch(`/admin/api/activity-logs?${params}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const pageData = result.data;
+                        totalPages = pageData.totalPages;
+                        renderLogs(pageData.content || []);
+                        updatePagination(pageData);
+                    }
+                } catch (error) {
+                    console.error('Error loading logs:', error);
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }
+
+            function renderLogs(logs) {
+                const container = document.getElementById('activityList');
+                const emptyState = document.getElementById('emptyState');
+                const paginationContainer = document.getElementById('paginationContainer');
+
+                if (logs.length === 0) {
+                    emptyState.style.display = 'block';
+                    container.style.display = 'none';
+                    paginationContainer.style.display = 'none';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                container.style.display = 'block';
+                paginationContainer.style.display = 'block';
+
+                container.innerHTML = logs.map(log => {
+                    const config = actionConfig[log.action] || { icon: 'circle', class: 'view', label: log.action };
+                    const time = new Date(log.createdAt).toLocaleString('vi-VN');
+
+                    return `
+                        <div class="activity-item d-flex align-items-start gap-3">
+                            <div class="activity-icon ${config.class}">
+                                <i class="fas fa-${config.icon}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>${log.staffName || 'System'}</strong>
+                                        <span class="text-muted">đã ${config.label.toLowerCase()}</span>
+                                        <span class="activity-entity">${log.entityType}</span>
+                                        ${log.entityId ? `<span class="text-muted">#${log.entityId}</span>` : ''}
+                                    </div>
+                                    <span class="activity-time">${time}</span>
+                                </div>
+                                ${log.description ? `<p class="mb-0 mt-1 text-muted small">${log.description}</p>` : ''}
+                                ${log.ipAddress ? `<small class="text-muted"><i class="fas fa-globe me-1"></i>${log.ipAddress}</small>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            function updatePagination(pageData) {
+                document.getElementById('pageInfo').textContent =
+                    `Trang ${pageData.number + 1} / ${pageData.totalPages} (${pageData.totalElements} kết quả)`;
+                document.getElementById('prevBtn').disabled = pageData.first;
+                document.getElementById('nextBtn').disabled = pageData.last;
+            }
+
+            function prevPage() {
+                if (currentPage > 0) {
+                    currentPage--;
+                    loadLogs();
+                }
+            }
+
+            function nextPage() {
+                if (currentPage < totalPages - 1) {
+                    currentPage++;
+                    loadLogs();
+                }
+            }
+
+            function exportLogs() {
+                alert('Chức năng xuất báo cáo đang phát triển');
+            }
+        </script>
+    </div>
+</body>
+
+</html>

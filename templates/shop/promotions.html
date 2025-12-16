@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title>Khuyến mãi</title>
+    <style>
+        .page-header {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid #e74c3c;
+            display: inline-block;
+        }
+
+        .flash-sale-section {
+            background: linear-gradient(135deg, #ffe6e6 0%, #fff 100%);
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 3rem;
+        }
+
+        .flash-icon {
+            color: #e74c3c;
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+            animation: flash 1s infinite;
+        }
+
+        @keyframes flash {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .promotion-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .promotion-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .promotion-badge {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: #e74c3c;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            z-index: 10;
+        }
+
+        .promotion-image {
+            height: 180px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .promotion-image .discount-text {
+            font-size: 3rem;
+            font-weight: 800;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .promotion-body {
+            padding: 1.5rem;
+        }
+
+        .promotion-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .promotion-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            height: 40px;
+            overflow: hidden;
+        }
+
+        .promotion-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .countdown {
+            background: #f8f9fa;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #e74c3c;
+        }
+
+        .countdown i {
+            margin-right: 0.25rem;
+        }
+
+        .bundle-card {
+            background: linear-gradient(135deg, #fff 0%, #f0f8ff 100%);
+            border: 2px solid #3498db;
+        }
+
+        .bundle-badge {
+            background: #3498db;
+        }
+
+        .bundle-image {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .view-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .view-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="container">
+                <h1><i class="fas fa-fire me-2"></i>Khuyến mãi</h1>
+                <p class="mb-0">Ưu đãi đặc biệt dành riêng cho bạn</p>
+            </div>
+        </div>
+
+        <div class="container pb-5">
+            <!-- Flash Sales Section -->
+            <div class="flash-sale-section" th:if="${flashSales != null and !#lists.isEmpty(flashSales)}">
+                <h2 class="section-title">
+                    <i class="fas fa-bolt flash-icon"></i>Flash Sale
+                </h2>
+                <div class="row g-4">
+                    <div class="col-md-4" th:each="promo : ${flashSales}">
+                        <a th:href="@{/promotions/{id}(id=${promo.promotionId})}" class="text-decoration-none">
+                            <div class="promotion-card position-relative">
+                                <span class="promotion-badge">FLASH SALE</span>
+                                <div class="promotion-image">
+                                    <span class="discount-text" th:text="${promo.discountText}">-50%</span>
+                                </div>
+                                <div class="promotion-body">
+                                    <div class="promotion-title" th:text="${promo.name}">Flash Sale cuối tuần</div>
+                                    <div class="promotion-description" th:text="${promo.description}">Giảm giá sốc lên
+                                        đến 50%</div>
+                                    <div class="promotion-meta">
+                                        <div class="countdown" th:if="${promo.remainingTimeSeconds != null}">
+                                            <i class="fas fa-clock"></i>
+                                            <span th:id="'countdown-' + ${promo.promotionId}"
+                                                th:data-seconds="${promo.remainingTimeSeconds}">Đang tính...</span>
+                                        </div>
+                                        <button class="view-btn">Xem ngay</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bundle/Combo Section -->
+            <div class="mb-5" th:if="${bundles != null and !#lists.isEmpty(bundles)}">
+                <h2 class="section-title">
+                    <i class="fas fa-boxes me-2" style="color: #3498db;"></i>Combo tiết kiệm
+                </h2>
+                <div class="row g-4">
+                    <div class="col-md-4" th:each="promo : ${bundles}">
+                        <a th:href="@{/promotions/{id}(id=${promo.promotionId})}" class="text-decoration-none">
+                            <div class="promotion-card bundle-card position-relative">
+                                <span class="promotion-badge bundle-badge">COMBO</span>
+                                <div class="promotion-image bundle-image">
+                                    <span class="discount-text">
+                                        <i class="fas fa-box-open"></i>
+                                    </span>
+                                </div>
+                                <div class="promotion-body">
+                                    <div class="promotion-title" th:text="${promo.name}">Combo vợt + túi</div>
+                                    <div class="promotion-description" th:text="${promo.description}">Mua combo tiết
+                                        kiệm hơn</div>
+                                    <div class="promotion-meta">
+                                        <span th:if="${promo.bundlePrice != null}">
+                                            <strong
+                                                th:text="${#numbers.formatDecimal(promo.bundlePrice, 0, 'COMMA', 0, 'POINT')} + '₫'">1,500,000₫</strong>
+                                        </span>
+                                        <button class="view-btn">Xem ngay</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Promotions Section -->
+            <div th:if="${promotions != null and !#lists.isEmpty(promotions)}">
+                <h2 class="section-title">
+                    <i class="fas fa-tags me-2" style="color: #27ae60;"></i>Tất cả khuyến mãi
+                </h2>
+                <div class="row g-4">
+                    <div class="col-md-4" th:each="promo : ${promotions}">
+                        <a th:href="@{/promotions/{id}(id=${promo.promotionId})}" class="text-decoration-none">
+                            <div class="promotion-card position-relative">
+                                <span class="promotion-badge"
+                                    th:style="${promo.type.name() == 'FLASH_SALE'} ? 'background:#e74c3c' : (${promo.type.name() == 'BUNDLE'} ? 'background:#3498db' : 'background:#27ae60')"
+                                    th:text="${promo.typeText}">Giảm giá</span>
+                                <div class="promotion-image"
+                                    th:style="${promo.type.name() == 'BUNDLE'} ? 'background:linear-gradient(135deg, #3498db 0%, #2980b9 100%)' : ''">
+                                    <span class="discount-text"
+                                        th:text="${promo.discountText ?: promo.typeText}">-20%</span>
+                                </div>
+                                <div class="promotion-body">
+                                    <div class="promotion-title" th:text="${promo.name}">Khuyến mãi</div>
+                                    <div class="promotion-description" th:text="${promo.description}">Mô tả khuyến mãi
+                                    </div>
+                                    <div class="promotion-meta">
+                                        <span>
+                                            <i class="fas fa-calendar-alt text-muted me-1"></i>
+                                            <span
+                                                th:text="${#temporals.format(promo.endsAt, 'dd/MM/yyyy')}">31/12/2024</span>
+                                        </span>
+                                        <button class="view-btn">Chi tiết</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" th:if="${promotions == null or #lists.isEmpty(promotions)}">
+                <i class="fas fa-fire-alt"></i>
+                <h4>Chưa có khuyến mãi nào</h4>
+                <p class="text-muted">Hãy quay lại sau để nhận những ưu đãi hấp dẫn!</p>
+                <a href="/products" class="btn btn-primary mt-3">
+                    <i class="fas fa-shopping-bag me-2"></i>Tiếp tục mua sắm
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Countdown timer for flash sales
+            document.querySelectorAll('[id^="countdown-"]').forEach(el => {
+                let seconds = parseInt(el.dataset.seconds);
+
+                function updateCountdown() {
+                    if (seconds <= 0) {
+                        el.textContent = 'Đã kết thúc';
+                        return;
+                    }
+
+                    const days = Math.floor(seconds / 86400);
+                    const hours = Math.floor((seconds % 86400) / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = seconds % 60;
+
+                    if (days > 0) {
+                        el.textContent = `${days}d ${hours}h ${minutes}m`;
+                    } else {
+                        el.textContent = `${hours}h ${minutes}m ${secs}s`;
+                    }
+
+                    seconds--;
+                }
+
+                updateCountdown();
+                setInterval(updateCountdown, 1000);
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

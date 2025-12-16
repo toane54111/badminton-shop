@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title th:text="${promotion.name}">Chi tiết khuyến mãi</title>
+    <style>
+        .promo-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .promo-header.flash-sale {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .promo-header.bundle {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .discount-badge {
+            font-size: 4rem;
+            font-weight: 800;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .promo-type-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .detail-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .detail-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .countdown-box {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .countdown-box h5 {
+            margin-bottom: 1rem;
+        }
+
+        .countdown-timer {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .countdown-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            min-width: 60px;
+        }
+
+        .countdown-number {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .countdown-label {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+
+        .applicable-products {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .product-tag {
+            background: #f8f9fa;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .cta-section {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .cta-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 3rem;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .cta-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <!-- Promo Header -->
+        <div class="promo-header"
+            th:classappend="${promotion.type.name() == 'FLASH_SALE'} ? 'flash-sale' : (${promotion.type.name() == 'BUNDLE'} ? 'bundle' : '')">
+            <div class="container text-center">
+                <span class="promo-type-badge" th:text="${promotion.typeText}">Flash Sale</span>
+                <h1 class="discount-badge" th:text="${promotion.discountText ?: ''}">-50%</h1>
+                <h2 th:text="${promotion.name}">Tên khuyến mãi</h2>
+                <p class="mb-0 opacity-75" th:text="${promotion.description}">Mô tả khuyến mãi</p>
+            </div>
+        </div>
+
+        <div class="container pb-5">
+            <div class="row">
+                <!-- Left Column - Details -->
+                <div class="col-lg-8">
+                    <!-- Description -->
+                    <div class="detail-card">
+                        <h3 class="detail-title">
+                            <i class="fas fa-info-circle me-2 text-primary"></i>Chi tiết khuyến mãi
+                        </h3>
+                        <p th:text="${promotion.description}" style="font-size: 1.1rem; line-height: 1.8;">
+                            Mô tả chi tiết về chương trình khuyến mãi
+                        </p>
+                    </div>
+
+                    <!-- Promotion Info -->
+                    <div class="detail-card">
+                        <h3 class="detail-title">
+                            <i class="fas fa-list-alt me-2 text-primary"></i>Thông tin
+                        </h3>
+
+                        <div class="info-row">
+                            <span class="info-label"><i class="fas fa-tag me-2"></i>Loại khuyến mãi</span>
+                            <span class="info-value" th:text="${promotion.typeText}">Flash Sale</span>
+                        </div>
+
+                        <div class="info-row" th:if="${promotion.discountType != null}">
+                            <span class="info-label"><i class="fas fa-percent me-2"></i>Hình thức giảm</span>
+                            <span class="info-value"
+                                th:text="${promotion.discountType.name() == 'PERCENTAGE'} ? 'Giảm theo %' : 'Giảm số tiền'">Giảm
+                                theo %</span>
+                        </div>
+
+                        <div class="info-row" th:if="${promotion.discountValue != null}">
+                            <span class="info-label"><i class="fas fa-coins me-2"></i>Giá trị giảm</span>
+                            <span class="info-value text-danger" th:text="${promotion.discountText}">-50%</span>
+                        </div>
+
+                        <div class="info-row" th:if="${promotion.bundlePrice != null}">
+                            <span class="info-label"><i class="fas fa-box me-2"></i>Giá combo</span>
+                            <span class="info-value text-success"
+                                th:text="${#numbers.formatDecimal(promotion.bundlePrice, 0, 'COMMA', 0, 'POINT')} + '₫'">1,500,000₫</span>
+                        </div>
+
+                        <div class="info-row" th:if="${promotion.buyQuantity != null}">
+                            <span class="info-label"><i class="fas fa-gift me-2"></i>Điều kiện</span>
+                            <span class="info-value"
+                                th:text="'Mua ' + ${promotion.buyQuantity} + ' tặng ' + ${promotion.getQuantity}">Mua 2
+                                tặng 1</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-label"><i class="fas fa-calendar-alt me-2"></i>Thời gian</span>
+                            <span class="info-value">
+                                <span
+                                    th:text="${#temporals.format(promotion.startsAt, 'dd/MM/yyyy HH:mm')}">01/01/2024</span>
+                                -
+                                <span
+                                    th:text="${#temporals.format(promotion.endsAt, 'dd/MM/yyyy HH:mm')}">31/12/2024</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Countdown & CTA -->
+                <div class="col-lg-4">
+                    <!-- Countdown -->
+                    <div class="countdown-box mb-4"
+                        th:if="${promotion.remainingTimeSeconds != null and promotion.remainingTimeSeconds > 0}">
+                        <h5><i class="fas fa-clock me-2"></i>Thời gian còn lại</h5>
+                        <div class="countdown-timer" id="countdown" th:data-seconds="${promotion.remainingTimeSeconds}">
+                            <div class="countdown-item">
+                                <div class="countdown-number" id="days">00</div>
+                                <div class="countdown-label">Ngày</div>
+                            </div>
+                            <div class="countdown-item">
+                                <div class="countdown-number" id="hours">00</div>
+                                <div class="countdown-label">Giờ</div>
+                            </div>
+                            <div class="countdown-item">
+                                <div class="countdown-number" id="minutes">00</div>
+                                <div class="countdown-label">Phút</div>
+                            </div>
+                            <div class="countdown-item">
+                                <div class="countdown-number" id="seconds">00</div>
+                                <div class="countdown-label">Giây</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CTA -->
+                    <div class="cta-section">
+                        <h5 class="mb-3">Đừng bỏ lỡ cơ hội!</h5>
+                        <p class="text-muted mb-4">Khám phá ngay sản phẩm được áp dụng khuyến mãi</p>
+                        <a href="/products" class="cta-btn">
+                            <i class="fas fa-shopping-bag me-2"></i>Mua ngay
+                        </a>
+                    </div>
+
+                    <!-- Back link -->
+                    <div class="text-center mt-4">
+                        <a href="/promotions" class="text-muted">
+                            <i class="fas fa-arrow-left me-2"></i>Xem tất cả khuyến mãi
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Countdown timer
+            const countdownEl = document.getElementById('countdown');
+            if (countdownEl) {
+                let seconds = parseInt(countdownEl.dataset.seconds);
+
+                function updateCountdown() {
+                    if (seconds <= 0) {
+                        document.getElementById('days').textContent = '00';
+                        document.getElementById('hours').textContent = '00';
+                        document.getElementById('minutes').textContent = '00';
+                        document.getElementById('seconds').textContent = '00';
+                        return;
+                    }
+
+                    const days = Math.floor(seconds / 86400);
+                    const hours = Math.floor((seconds % 86400) / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = seconds % 60;
+
+                    document.getElementById('days').textContent = String(days).padStart(2, '0');
+                    document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+                    document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+                    document.getElementById('seconds').textContent = String(secs).padStart(2, '0');
+
+                    seconds--;
+                }
+
+                updateCountdown();
+                setInterval(updateCountdown, 1000);
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý FAQ</title>
+    <style>
+        .faq-item {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .faq-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .faq-question {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .faq-answer {
+            color: #666;
+            font-size: 0.9rem;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .faq-meta {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title"><i class="fas fa-question-circle me-2"></i>Quản lý FAQ</h1>
+                <p class="page-subtitle">Câu hỏi thường gặp</p>
+            </div>
+            <button class="btn btn-primary" onclick="showCreateModal()">
+                <i class="fas fa-plus me-1"></i>Thêm FAQ
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" id="searchKeyword" placeholder="Tìm kiếm câu hỏi...">
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="filterCategory">
+                            <option value="">Tất cả danh mục</option>
+                            <th:block th:each="cat : ${categories}">
+                                <option th:value="${cat}" th:text="${cat}"></option>
+                            </th:block>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-secondary w-100" onclick="loadFAQs()">
+                            <i class="fas fa-search me-1"></i>Tìm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQs List -->
+        <div id="faqsList">
+            <!-- FAQs will be loaded here -->
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="d-flex justify-content-center mt-3"></div>
+    </div>
+
+    <!-- FAQ Modal -->
+    <div class="modal fade" id="faqModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Thêm FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="faqForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="faqId">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Câu hỏi <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="question" required
+                                        placeholder="Nhập câu hỏi...">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Danh mục</label>
+                                    <input type="text" class="form-control" id="category"
+                                        placeholder="VD: Đặt hàng, Vận chuyển">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Câu trả lời <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="answer" rows="5" required
+                                placeholder="Nhập câu trả lời..."></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Thứ tự hiển thị</label>
+                                    <input type="number" class="form-control" id="displayOrder" min="0" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Trạng thái</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                        <label class="form-check-label">Hiển thị</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-primary">Lưu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            const faqModal = new bootstrap.Modal(document.getElementById('faqModal'));
+            let currentPage = 0;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                loadFAQs();
+
+                document.getElementById('faqForm').addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    saveFAQ();
+                });
+            });
+
+            function loadFAQs(page = 0) {
+                currentPage = page;
+                fetch(`/admin/api/faq?page=${page}&size=20`)
+                    .then(response => response.json())
+                    .then(data => {
+                        renderFAQs(data.content);
+                        renderPagination(data);
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+            function renderFAQs(faqs) {
+                const container = document.getElementById('faqsList');
+                if (faqs.length === 0) {
+                    container.innerHTML = '<div class="text-center text-muted py-5"><i class="fas fa-question-circle fa-3x mb-3"></i><h5>Không có FAQ nào</h5></div>';
+                    return;
+                }
+
+                container.innerHTML = faqs.map(faq => `
+                    <div class="faq-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="faq-question">
+                                    <i class="fas fa-question-circle text-primary me-2"></i>${faq.question}
+                                </div>
+                                <div class="faq-answer">${faq.answer}</div>
+                                <div class="faq-meta">
+                                    <span class="badge ${faq.isActive ? 'bg-success' : 'bg-secondary'}">
+                                        ${faq.isActive ? 'Hiển thị' : 'Ẩn'}
+                                    </span>
+                                    <span class="badge bg-info">${faq.category || 'Chưa phân loại'}</span>
+                                    <small class="text-muted">
+                                        <i class="fas fa-eye me-1"></i>${faq.viewCount || 0} lượt xem
+                                    </small>
+                                    <small class="text-muted">
+                                        <i class="fas fa-sort me-1"></i>Thứ tự: ${faq.displayOrder || 0}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="btn-group ms-3">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editFAQ(${faq.faqId})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-${faq.isActive ? 'warning' : 'success'}" 
+                                    onclick="toggleActive(${faq.faqId})">
+                                    <i class="fas fa-${faq.isActive ? 'eye-slash' : 'eye'}"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteFAQ(${faq.faqId})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function renderPagination(data) {
+                const container = document.getElementById('pagination');
+                if (data.totalPages <= 1) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                let html = '<nav><ul class="pagination pagination-sm">';
+                for (let i = 0; i < data.totalPages; i++) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadFAQs(${i})">${i + 1}</a>
+                    </li>`;
+                }
+                html += '</ul></nav>';
+                container.innerHTML = html;
+            }
+
+            function showCreateModal() {
+                document.getElementById('modalTitle').textContent = 'Thêm FAQ';
+                document.getElementById('faqForm').reset();
+                document.getElementById('faqId').value = '';
+                document.getElementById('isActive').checked = true;
+                document.getElementById('displayOrder').value = 0;
+                faqModal.show();
+            }
+
+            function editFAQ(id) {
+                fetch(`/admin/api/faq/${id}`)
+                    .then(response => response.json())
+                    .then(faq => {
+                        document.getElementById('modalTitle').textContent = 'Sửa FAQ';
+                        document.getElementById('faqId').value = faq.faqId;
+                        document.getElementById('question').value = faq.question;
+                        document.getElementById('answer').value = faq.answer;
+                        document.getElementById('category').value = faq.category || '';
+                        document.getElementById('displayOrder').value = faq.displayOrder || 0;
+                        document.getElementById('isActive').checked = faq.isActive;
+                        faqModal.show();
+                    })
+                    .catch(error => alert('Lỗi tải dữ liệu: ' + error.message));
+            }
+
+            function saveFAQ() {
+                const id = document.getElementById('faqId').value;
+                const data = {
+                    question: document.getElementById('question').value,
+                    answer: document.getElementById('answer').value,
+                    category: document.getElementById('category').value || null,
+                    displayOrder: parseInt(document.getElementById('displayOrder').value) || 0,
+                    isActive: document.getElementById('isActive').checked
+                };
+
+                const url = id ? '/admin/api/faq/' + id : '/admin/api/faq';
+                const method = id ? 'PUT' : 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (!response.ok) throw response;
+                        return response.json();
+                    })
+                    .then(() => {
+                        faqModal.hide();
+                        loadFAQs(currentPage);
+                        alert(id ? 'Đã cập nhật FAQ!' : 'Đã thêm FAQ!');
+                    })
+                    .catch(async error => {
+                        if (error.json) {
+                            const err = await error.json();
+                            alert('Lỗi: ' + (err.error || 'Có lỗi xảy ra'));
+                        } else {
+                            alert('Có lỗi xảy ra');
+                        }
+                    });
+            }
+
+            function toggleActive(id) {
+                fetch(`/admin/api/faq/${id}/toggle-active`, { method: 'PUT' })
+                    .then(response => {
+                        if (!response.ok) throw response;
+                        return response.json();
+                    })
+                    .then(() => {
+                        loadFAQs(currentPage);
+                    })
+                    .catch(() => alert('Có lỗi xảy ra'));
+            }
+
+            function deleteFAQ(id) {
+                if (!confirm('Bạn có chắc muốn xóa FAQ này?')) return;
+
+                fetch(`/admin/api/faq/${id}`, { method: 'DELETE' })
+                    .then(response => {
+                        if (!response.ok) throw response;
+                        return response.json();
+                    })
+                    .then(() => {
+                        loadFAQs(currentPage);
+                        alert('Đã xóa FAQ!');
+                    })
+                    .catch(() => alert('Có lỗi xảy ra'));
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

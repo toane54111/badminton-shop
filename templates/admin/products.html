@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý sản phẩm</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Quản lý sản phẩm</h1>
+                <p class="page-subtitle">Danh sách tất cả sản phẩm trong hệ thống</p>
+            </div>
+            <div>
+                <a th:href="@{/admin/products/new}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Thêm sản phẩm
+                </a>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Tìm kiếm</label>
+                        <input type="text" class="form-control" id="keyword" name="keyword" placeholder="Tên, SKU..."
+                            th:value="${param.keyword}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Danh mục</label>
+                        <select class="form-select" id="categoryId" name="categoryId">
+                            <option value="">Tất cả</option>
+                            <th:block th:each="cat : ${categories}">
+                                <option th:value="${cat.categoryId}" th:text="${cat.name}"
+                                    th:selected="${param.categoryId == cat.categoryId}"></option>
+                                <!-- Show child categories (subcategories) -->
+                                <th:block th:if="${cat.children != null and !#lists.isEmpty(cat.children)}">
+                                    <option th:each="sub : ${cat.children}" th:value="${sub.categoryId}"
+                                        th:text="'— ' + ${sub.name}"
+                                        th:selected="${param.categoryId == sub.categoryId}"></option>
+                                </th:block>
+                            </th:block>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Thương hiệu</label>
+                        <select class="form-select" id="brandId" name="brandId">
+                            <option value="">Tất cả</option>
+                            <option th:each="brand : ${brands}" th:value="${brand.brandId}" th:text="${brand.name}"
+                                th:selected="${param.brandId == brand.brandId}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Trạng thái</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Tất cả</option>
+                            <option value="ACTIVE">Đang bán</option>
+                            <option value="DRAFT">Nháp</option>
+                            <option value="OUT_OF_STOCK">Hết hàng</option>
+                            <option value="DISCONTINUED">Ngừng bán</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-outline-primary me-2">
+                            <i class="fas fa-search me-1"></i>Lọc
+                        </button>
+                        <a th:href="@{/admin/products}" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo me-1"></i>Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Products Table -->
+        <div class="data-table-wrapper">
+            <div class="table-responsive">
+                <table class="table data-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Ảnh</th>
+                            <th>Sản phẩm</th>
+                            <th>Danh mục</th>
+                            <th>Thương hiệu</th>
+                            <th>Giá</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="product : ${products.content}">
+                            <td>
+                                <img th:src="${product.primaryImageUrl ?: '/images/no-image.png'}" alt=""
+                                    class="rounded" style="width: 60px; height: 60px; object-fit: cover;">
+                            </td>
+                            <td>
+                                <div class="fw-medium" th:text="${product.name}">Vợt cầu lông</div>
+                                <small class="text-muted" th:text="'SKU: ' + ${product.sku}">SKU: ABC123</small>
+                            </td>
+                            <td th:text="${product.categoryName}">Vợt</td>
+                            <td th:text="${product.brandName ?: 'N/A'}">Yonex</td>
+                            <td>
+                                <div
+                                    th:text="${#numbers.formatDecimal(product.basePrice, 0, 'COMMA', 0, 'POINT')} + '₫'">
+                                    1,500,000₫</div>
+                                <small class="text-success" th:if="${product.compareAtPrice != null}"
+                                    th:text="'-' + ${#numbers.formatDecimal(product.discountPercentage, 0, 'COMMA', 0, 'POINT')} + '%'">-10%</small>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                    th:classappend="${product.status.name() == 'ACTIVE'} ? 'bg-success' : 
+                                                  (${product.status.name() == 'DRAFT'} ? 'bg-secondary' : 
+                                                  (${product.status.name() == 'OUT_OF_STOCK'} ? 'bg-warning' : 'bg-danger'))"
+                                    th:text="${product.status}">Active</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a th:href="@{/admin/products/{id}(id=${product.productId})}"
+                                        class="btn btn-outline-primary" title="Chi tiết/Sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" title="Xóa"
+                                        th:onclick="'deleteProduct(' + ${product.productId} + ')'">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${products.content == null or #lists.isEmpty(products.content)}">
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fas fa-box-open fa-3x mb-3 d-block"></i>
+                                Chưa có sản phẩm nào
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center p-3" th:if="${products.totalPages > 1}">
+                <div class="text-muted">
+                    Hiển thị <span th:text="${products.number * products.size + 1}">1</span> -
+                    <span
+                        th:text="${(products.number + 1) * products.size > products.totalElements ? products.totalElements : (products.number + 1) * products.size}">10</span>
+                    trong <span th:text="${products.totalElements}">100</span> sản phẩm
+                </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item" th:classappend="${products.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/products(page=${products.number - 1})}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item" th:each="i : ${#numbers.sequence(0, products.totalPages - 1)}"
+                            th:classappend="${i == products.number} ? 'active'">
+                            <a class="page-link" th:href="@{/admin/products(page=${i})}" th:text="${i + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${products.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/products(page=${products.number + 1})}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            function deleteProduct(id) {
+                if (confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
+                    fetch('/admin/api/products/' + id, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.message) {
+                                alert(data.message);
+                                location.reload();
+                            } else if (data.error) {
+                                alert('Lỗi: ' + data.error);
+                            }
+                        })
+                        .catch(error => {
+                            alert('Có lỗi xảy ra: ' + error);
+                        });
+                }
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

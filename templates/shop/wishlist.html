@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title>Danh sách yêu thích</title>
+    <style>
+        .wishlist-item {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+        }
+
+        .wishlist-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .wishlist-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .wishlist-item .content {
+            padding: 1rem;
+        }
+
+        .btn-remove-wishlist {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-remove-wishlist:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .discount-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #e74c3c;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .empty-wishlist {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-wishlist i {
+            font-size: 5rem;
+            color: #ddd;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <div class="container py-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-heart me-2 text-danger"></i>Danh sách yêu thích</h2>
+                <span id="wishlistCount" class="text-muted"></span>
+            </div>
+
+            <div id="wishlistContent">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            document.addEventListener('DOMContentLoaded', loadWishlist);
+
+            function loadWishlist() {
+                fetch('/api/wishlist/all')
+                    .then(response => {
+                        if (response.status === 401) {
+                            window.location.href = '/login';
+                            return null;
+                        }
+                        return response.json();
+                    })
+                    .then(items => {
+                        if (items) renderWishlist(items);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('wishlistContent').innerHTML = `
+                            <div class="alert alert-danger">Không thể tải danh sách yêu thích. Vui lòng thử lại.</div>
+                        `;
+                    });
+            }
+
+            function renderWishlist(items) {
+                const container = document.getElementById('wishlistContent');
+                const countEl = document.getElementById('wishlistCount');
+                
+                countEl.textContent = `${items.length} sản phẩm`;
+
+                if (items.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-wishlist">
+                            <i class="fas fa-heart"></i>
+                            <h3>Chưa có sản phẩm yêu thích</h3>
+                            <p class="text-muted">Hãy thêm sản phẩm vào danh sách yêu thích để xem lại sau</p>
+                            <a href="/products" class="btn btn-primary mt-3">
+                                <i class="fas fa-arrow-left me-2"></i>Khám phá sản phẩm
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '<div class="row g-4">';
+                items.forEach(item => {
+                    const hasDiscount = item.compareAtPrice && item.compareAtPrice > item.basePrice;
+                    html += `
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="wishlist-item position-relative">
+                                ${hasDiscount ? `<span class="discount-badge">-${Math.round(item.discountPercentage)}%</span>` : ''}
+                                <button class="btn-remove-wishlist" onclick="removeFromWishlist(${item.productId})" title="Xóa khỏi yêu thích">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <a href="/products/${item.productSlug}">
+                                    <img src="${item.productImage || '/images/no-image.png'}" alt="${item.productName}">
+                                </a>
+                                <div class="content">
+                                    ${item.brandName ? `<small class="text-muted">${item.brandName}</small>` : ''}
+                                    <h6 class="mb-2">
+                                        <a href="/products/${item.productSlug}" class="text-decoration-none text-dark">
+                                            ${item.productName}
+                                        </a>
+                                    </h6>
+                                    <div class="d-flex align-items-center gap-2 mb-3">
+                                        <span class="fw-bold text-danger">${formatPrice(item.basePrice)}</span>
+                                        ${hasDiscount ? `<small class="text-muted text-decoration-line-through">${formatPrice(item.compareAtPrice)}</small>` : ''}
+                                    </div>
+                                    <button class="btn btn-primary btn-sm w-100" onclick="addToCart(${item.productId})">
+                                        <i class="fas fa-cart-plus me-1"></i>Thêm vào giỏ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            function formatPrice(price) {
+                return new Intl.NumberFormat('vi-VN').format(price) + '₫';
+            }
+
+            function removeFromWishlist(productId) {
+                fetch(`/api/wishlist/${productId}`, { method: 'DELETE' })
+                    .then(response => {
+                        if (response.ok) {
+                            loadWishlist();
+                            showToast('Đã xóa khỏi yêu thích', 'success');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+            function addToCart(productId) {
+                fetch('/api/cart/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productId: productId, quantity: 1 })
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            showToast('Đã thêm vào giỏ hàng', 'success');
+                            updateCartCount();
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+            function updateCartCount() {
+                fetch('/api/cart/count')
+                    .then(response => response.json())
+                    .then(data => {
+                        const badge = document.querySelector('.cart-count');
+                        if (badge) badge.textContent = data.count;
+                    })
+                    .catch(() => { });
+            }
+
+            function showToast(message, type) {
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                toast.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : 'times-circle'} me-2"></i>
+                        <span>${message}</span>
+                        <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

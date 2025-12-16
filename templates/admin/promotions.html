@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý khuyến mãi</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Quản lý khuyến mãi</h1>
+                <p class="page-subtitle">Danh sách các chương trình khuyến mãi trong hệ thống</p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#promotionModal"
+                    onclick="resetForm()">
+                    <i class="fas fa-plus me-2"></i>Thêm khuyến mãi
+                </button>
+            </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" id="keyword" name="keyword"
+                            placeholder="Tìm theo tên..." th:value="${param.keyword}">
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="type" name="type">
+                            <option value="">Tất cả loại</option>
+                            <option value="FLASH_SALE"
+                                th:selected="${param.type != null and param.type[0] == 'FLASH_SALE'}">Flash Sale
+                            </option>
+                            <option value="BUNDLE" th:selected="${param.type != null and param.type[0] == 'BUNDLE'}">
+                                Combo</option>
+                            <option value="BUY_X_GET_Y"
+                                th:selected="${param.type != null and param.type[0] == 'BUY_X_GET_Y'}">Mua X tặng Y
+                            </option>
+                            <option value="DISCOUNT"
+                                th:selected="${param.type != null and param.type[0] == 'DISCOUNT'}">Giảm giá</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="ACTIVE"
+                                th:selected="${param.status != null and param.status[0] == 'ACTIVE'}">Đang hoạt động
+                            </option>
+                            <option value="EXPIRED"
+                                th:selected="${param.status != null and param.status[0] == 'EXPIRED'}">Đã hết hạn
+                            </option>
+                            <option value="NOT_STARTED"
+                                th:selected="${param.status != null and param.status[0] == 'NOT_STARTED'}">Chưa bắt đầu
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search me-1"></i>Tìm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Promotions Table -->
+        <div class="data-table-wrapper">
+            <div class="table-responsive">
+                <table class="table data-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Tên khuyến mãi</th>
+                            <th>Loại</th>
+                            <th>Giảm giá</th>
+                            <th>Thời gian</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="promotionsTable">
+                        <tr th:each="promo : ${promotions.content}">
+                            <td>
+                                <strong th:text="${promo.name}">Flash Sale cuối tuần</strong>
+                                <div class="small text-muted" th:if="${promo.description}"
+                                    th:text="${#strings.abbreviate(promo.description, 50)}">Mô tả</div>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                    th:classappend="${promo.type.name() == 'FLASH_SALE'} ? 'bg-danger' : 
+                                                   (${promo.type.name() == 'BUNDLE'} ? 'bg-info' : 
+                                                   (${promo.type.name() == 'BUY_X_GET_Y'} ? 'bg-warning' : 'bg-success'))"
+                                    th:text="${promo.typeText}">
+                                    Flash Sale
+                                </span>
+                            </td>
+                            <td>
+                                <span th:if="${promo.discountText}" th:text="${promo.discountText}"
+                                    class="fw-bold text-danger">-50%</span>
+                                <span th:if="${promo.bundlePrice != null}" class="fw-bold text-success"
+                                    th:text="${#numbers.formatDecimal(promo.bundlePrice, 0, 'COMMA', 0, 'POINT')} + '₫'">1,500,000₫</span>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <i class="fas fa-calendar-alt text-muted me-1"></i>
+                                    <span th:text="${#temporals.format(promo.startsAt, 'dd/MM/yyyy')}">01/01/2024</span>
+                                    -
+                                    <span th:text="${#temporals.format(promo.endsAt, 'dd/MM/yyyy')}">31/12/2024</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                    th:classappend="${promo.isActive and promo.remainingTimeSeconds != null and promo.remainingTimeSeconds > 0} ? 'bg-success' : 'bg-secondary'"
+                                    th:text="${promo.isActive and promo.remainingTimeSeconds != null and promo.remainingTimeSeconds > 0} ? 'Đang hoạt động' : (${promo.isActive} ? 'Chưa bắt đầu/Hết hạn' : 'Đã tắt')">
+                                    Đang hoạt động
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-warning" title="Sửa"
+                                        th:onclick="'editPromotion(' + ${promo.promotionId} + ')'">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" title="Xóa"
+                                        th:onclick="'deletePromotion(' + ${promo.promotionId} + ')'">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${promotions.content == null or #lists.isEmpty(promotions.content)}">
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <i class="fas fa-fire-alt fa-3x mb-3 d-block"></i>
+                                Chưa có khuyến mãi nào
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center p-3" th:if="${promotions.totalPages > 1}">
+                <div class="text-muted">
+                    Hiển thị <span th:text="${promotions.number * promotions.size + 1}">1</span> -
+                    <span
+                        th:text="${(promotions.number + 1) * promotions.size > promotions.totalElements ? promotions.totalElements : (promotions.number + 1) * promotions.size}">10</span>
+                    trong <span th:text="${promotions.totalElements}">100</span> khuyến mãi
+                </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item" th:classappend="${promotions.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/promotions(page=${promotions.number - 1})}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item" th:each="i : ${#numbers.sequence(0, promotions.totalPages - 1)}"
+                            th:classappend="${i == promotions.number} ? 'active'">
+                            <a class="page-link" th:href="@{/admin/promotions(page=${i})}" th:text="${i + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${promotions.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/promotions(page=${promotions.number + 1})}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Promotion Modal -->
+        <div class="modal fade" id="promotionModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Thêm khuyến mãi</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="promotionForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="promotionId">
+
+                            <div class="row">
+                                <!-- Left Column -->
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tên khuyến mãi <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="name" required
+                                            placeholder="VD: Flash Sale cuối tuần">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Mô tả</label>
+                                        <textarea class="form-control" id="description" rows="2"
+                                            placeholder="Mô tả chi tiết về khuyến mãi"></textarea>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Loại khuyến mãi <span
+                                                    class="text-danger">*</span></label>
+                                            <select class="form-select" id="promotionType" required
+                                                onchange="toggleTypeFields()">
+                                                <option value="FLASH_SALE">Flash Sale</option>
+                                                <option value="BUNDLE">Combo</option>
+                                                <option value="BUY_X_GET_Y">Mua X tặng Y</option>
+                                                <option value="DISCOUNT">Giảm giá</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3" id="discountTypeGroup">
+                                            <label class="form-label">Hình thức giảm</label>
+                                            <select class="form-select" id="discountType"
+                                                onchange="toggleDiscountFields()">
+                                                <option value="PERCENTAGE">Theo %</option>
+                                                <option value="FIXED_AMOUNT">Số tiền cố định</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3" id="discountValueGroup">
+                                        <label class="form-label">Giá trị giảm <span
+                                                class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="discountValue" min="0"
+                                                step="0.01">
+                                            <span class="input-group-text" id="discountSuffix">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right Column -->
+                                <div class="col-md-6">
+                                    <!-- Bundle fields -->
+                                    <div id="bundleGroup" style="display: none;">
+                                        <div class="mb-3">
+                                            <label class="form-label">Giá combo</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" id="bundlePrice" min="0">
+                                                <span class="input-group-text">₫</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Buy X Get Y fields -->
+                                    <div id="buyXGetYGroup" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Mua số lượng</label>
+                                                <input type="number" class="form-control" id="buyQuantity" min="1">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Tặng số lượng</label>
+                                                <input type="number" class="form-control" id="getQuantity" min="1">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Ngày bắt đầu <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="datetime-local" class="form-control" id="startsAt" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Ngày kết thúc <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="datetime-local" class="form-control" id="endsAt" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Áp dụng cho sản phẩm</label>
+                                        <select class="form-select" id="applicableProducts" multiple size="4">
+                                            <option th:each="p : ${allProducts}" th:value="${p.productId}"
+                                                th:text="${p.name}"></option>
+                                        </select>
+                                        <small class="text-muted">Giữ Ctrl để chọn nhiều. Để trống nếu áp dụng cho tất
+                                            cả</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Áp dụng cho danh mục</label>
+                                        <select class="form-select" id="applicableCategories" multiple size="4">
+                                            <option th:each="c : ${allCategories}" th:value="${c.categoryId}"
+                                                th:text="${c.name}"></option>
+                                        </select>
+                                        <small class="text-muted">Giữ Ctrl để chọn nhiều</small>
+                                    </div>
+
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                        <label class="form-check-label">Hoạt động</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            const promotionModal = new bootstrap.Modal(document.getElementById('promotionModal'));
+
+            document.getElementById('promotionForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                savePromotion();
+            });
+
+            function toggleTypeFields() {
+                const type = document.getElementById('promotionType').value;
+                const discountTypeGroup = document.getElementById('discountTypeGroup');
+                const discountValueGroup = document.getElementById('discountValueGroup');
+                const bundleGroup = document.getElementById('bundleGroup');
+                const buyXGetYGroup = document.getElementById('buyXGetYGroup');
+
+                // Hide all optional groups
+                bundleGroup.style.display = 'none';
+                buyXGetYGroup.style.display = 'none';
+
+                if (type === 'BUNDLE') {
+                    bundleGroup.style.display = 'block';
+                    discountTypeGroup.style.display = 'none';
+                    discountValueGroup.style.display = 'none';
+                } else if (type === 'BUY_X_GET_Y') {
+                    buyXGetYGroup.style.display = 'block';
+                    discountTypeGroup.style.display = 'block';
+                    discountValueGroup.style.display = 'block';
+                } else {
+                    discountTypeGroup.style.display = 'block';
+                    discountValueGroup.style.display = 'block';
+                }
+            }
+
+            function toggleDiscountFields() {
+                const discountType = document.getElementById('discountType').value;
+                const suffix = document.getElementById('discountSuffix');
+                suffix.textContent = discountType === 'PERCENTAGE' ? '%' : '₫';
+            }
+
+            // Helper: Get selected values from multi-select as JSON string
+            function getSelectedValues(selectId) {
+                const select = document.getElementById(selectId);
+                const values = Array.from(select.selectedOptions).map(opt => parseInt(opt.value));
+                return values.length > 0 ? JSON.stringify(values) : null;
+            }
+
+            // Helper: Set selected values in multi-select from JSON string
+            function setSelectedValues(selectId, jsonStr) {
+                const select = document.getElementById(selectId);
+                // Clear all selections first
+                Array.from(select.options).forEach(opt => opt.selected = false);
+
+                if (jsonStr) {
+                    try {
+                        const values = JSON.parse(jsonStr);
+                        if (Array.isArray(values)) {
+                            values.forEach(val => {
+                                const option = select.querySelector(`option[value="${val}"]`);
+                                if (option) option.selected = true;
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e);
+                    }
+                }
+            }
+
+            function resetForm() {
+                document.getElementById('modalTitle').textContent = 'Thêm khuyến mãi';
+                document.getElementById('promotionForm').reset();
+                document.getElementById('promotionId').value = '';
+                document.getElementById('isActive').checked = true;
+                document.getElementById('promotionType').value = 'FLASH_SALE';
+                document.getElementById('discountType').value = 'PERCENTAGE';
+                toggleTypeFields();
+                toggleDiscountFields();
+
+                // Set default dates
+                const now = new Date();
+                const oneWeekLater = new Date();
+                oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+
+                document.getElementById('startsAt').value = formatDateTimeLocal(now);
+                document.getElementById('endsAt').value = formatDateTimeLocal(oneWeekLater);
+            }
+
+            function formatDateTimeLocal(date) {
+                return date.toISOString().slice(0, 16);
+            }
+
+            function savePromotion() {
+                const id = document.getElementById('promotionId').value;
+                const type = document.getElementById('promotionType').value;
+
+                const data = {
+                    name: document.getElementById('name').value,
+                    description: document.getElementById('description').value || null,
+                    type: type,
+                    discountType: type !== 'BUNDLE' ? document.getElementById('discountType').value : null,
+                    discountValue: type !== 'BUNDLE' ? (parseFloat(document.getElementById('discountValue').value) || null) : null,
+                    bundlePrice: type === 'BUNDLE' ? (parseFloat(document.getElementById('bundlePrice').value) || null) : null,
+                    buyQuantity: type === 'BUY_X_GET_Y' ? (parseInt(document.getElementById('buyQuantity').value) || null) : null,
+                    getQuantity: type === 'BUY_X_GET_Y' ? (parseInt(document.getElementById('getQuantity').value) || null) : null,
+                    applicableProducts: getSelectedValues('applicableProducts'),
+                    applicableCategories: getSelectedValues('applicableCategories'),
+                    startsAt: document.getElementById('startsAt').value,
+                    endsAt: document.getElementById('endsAt').value,
+                    isActive: document.getElementById('isActive').checked
+                };
+
+                if (!data.name) {
+                    alert('Vui lòng nhập tên khuyến mãi');
+                    return;
+                }
+
+                const url = id ? '/admin/api/promotions/' + id : '/admin/api/promotions';
+                const method = id ? 'PUT' : 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (response.status === 403) {
+                            throw new Error('Bạn không có quyền thực hiện thao tác này.');
+                        }
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.error || 'Lỗi server: ' + response.status);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (result.error) {
+                            alert('Lỗi: ' + result.error);
+                        } else {
+                            promotionModal.hide();
+                            location.reload();
+                        }
+                    })
+                    .catch(error => alert('Có lỗi xảy ra: ' + error.message));
+            }
+
+            function editPromotion(id) {
+                fetch('/admin/api/promotions/' + id)
+                    .then(response => response.json())
+                    .then(promo => {
+                        document.getElementById('modalTitle').textContent = 'Sửa khuyến mãi';
+                        document.getElementById('promotionId').value = promo.promotionId;
+                        document.getElementById('name').value = promo.name;
+                        document.getElementById('description').value = promo.description || '';
+                        document.getElementById('promotionType').value = promo.type;
+                        document.getElementById('discountType').value = promo.discountType || 'PERCENTAGE';
+                        document.getElementById('discountValue').value = promo.discountValue || '';
+                        document.getElementById('bundlePrice').value = promo.bundlePrice || '';
+                        document.getElementById('buyQuantity').value = promo.buyQuantity || '';
+                        document.getElementById('getQuantity').value = promo.getQuantity || '';
+                        setSelectedValues('applicableProducts', promo.applicableProducts);
+                        setSelectedValues('applicableCategories', promo.applicableCategories);
+                        document.getElementById('startsAt').value = promo.startsAt ? promo.startsAt.slice(0, 16) : '';
+                        document.getElementById('endsAt').value = promo.endsAt ? promo.endsAt.slice(0, 16) : '';
+                        document.getElementById('isActive').checked = promo.isActive;
+
+                        toggleTypeFields();
+                        toggleDiscountFields();
+                        promotionModal.show();
+                    });
+            }
+
+            function deletePromotion(id) {
+                if (confirm('Bạn có chắc muốn xóa khuyến mãi này?')) {
+                    fetch('/admin/api/promotions/' + id, { method: 'DELETE' })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.message) {
+                                location.reload();
+                            } else if (result.error) {
+                                alert('Lỗi: ' + result.error);
+                            }
+                        });
+                }
+            }
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', function () {
+                toggleTypeFields();
+                toggleDiscountFields();
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

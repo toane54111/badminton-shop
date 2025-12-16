@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title>Câu hỏi thường gặp - Badminton Shop</title>
+    <meta name="description"
+        content="Các câu hỏi thường gặp về sản phẩm, đặt hàng, giao hàng và chính sách tại Badminton Shop">
+    <style>
+        .faq-hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+
+        .faq-hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .faq-section {
+            padding: 4rem 0;
+        }
+
+        .category-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+
+        .category-tab {
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            color: #666;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .category-tab:hover,
+        .category-tab.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 1.25rem 1.5rem;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s ease;
+        }
+
+        .faq-question:hover {
+            background: #f8f9fa;
+        }
+
+        .faq-question[aria-expanded="true"] {
+            background: var(--primary);
+            color: white;
+        }
+
+        .faq-question i {
+            transition: transform 0.3s ease;
+        }
+
+        .faq-question[aria-expanded="true"] i {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            padding: 0 1.5rem;
+            background: #fafafa;
+        }
+
+        .faq-answer-inner {
+            padding: 1.5rem 0;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .search-box {
+            max-width: 500px;
+            margin: 0 auto 2rem;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+
+        .no-results i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Hero Section -->
+        <div class="faq-hero">
+            <div class="container">
+                <h1><i class="fas fa-question-circle me-3"></i>Câu hỏi thường gặp</h1>
+                <p class="mt-3 mb-0 opacity-75">Tìm câu trả lời cho các thắc mắc của bạn</p>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="faq-section">
+            <div class="container">
+                <!-- Search -->
+                <div class="search-box">
+                    <form th:action="@{/faq}" method="get">
+                        <div class="input-group input-group-lg">
+                            <input type="text" name="keyword" class="form-control" placeholder="Tìm kiếm câu hỏi..."
+                                th:value="${keyword}" style="border-radius: 50px 0 0 50px;">
+                            <button class="btn btn-primary" type="submit" style="border-radius: 0 50px 50px 0;">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Category Tabs -->
+                <div class="category-tabs" th:if="${categories != null and !categories.isEmpty()}">
+                    <a th:href="@{/faq}" class="category-tab" th:classappend="${category == null} ? 'active'">
+                        <i class="fas fa-th-large me-1"></i>Tất cả
+                    </a>
+                    <a th:each="cat : ${categories}" th:href="@{/faq(category=${cat})}" class="category-tab"
+                        th:classappend="${category == cat} ? 'active'" th:text="${cat}"></a>
+                </div>
+
+                <!-- FAQ List -->
+                <div class="accordion" id="faqAccordion">
+                    <th:block th:if="${faqs != null and !faqs.isEmpty()}">
+                        <div th:each="faq, iterStat : ${faqs}" class="faq-item">
+                            <div class="faq-question" th:id="'heading' + ${faq.faqId}" data-bs-toggle="collapse"
+                                th:data-bs-target="'#collapse' + ${faq.faqId}"
+                                th:attr="aria-expanded=${iterStat.first ? 'true' : 'false'}"
+                                th:aria-controls="'collapse' + ${faq.faqId}">
+                                <span>
+                                    <i class="fas fa-question-circle text-primary me-2"
+                                        th:classappend="${iterStat.first} ? 'text-white'"></i>
+                                    <span th:text="${faq.question}"></span>
+                                </span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div th:id="'collapse' + ${faq.faqId}" class="collapse"
+                                th:classappend="${iterStat.first} ? 'show'"
+                                th:aria-labelledby="'heading' + ${faq.faqId}" data-bs-parent="#faqAccordion">
+                                <div class="faq-answer">
+                                    <div class="faq-answer-inner" th:utext="${faq.answer}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </th:block>
+
+                    <div th:if="${faqs == null or faqs.isEmpty()}" class="no-results">
+                        <i class="fas fa-search"></i>
+                        <h5>Không tìm thấy câu hỏi nào</h5>
+                        <p>Hãy thử tìm kiếm với từ khóa khác</p>
+                        <a th:href="@{/faq}" class="btn btn-outline-primary mt-2">Xem tất cả FAQ</a>
+                    </div>
+                </div>
+
+                <!-- Contact CTA -->
+                <div class="text-center mt-5 p-4 bg-light rounded-3">
+                    <h5>Không tìm thấy câu trả lời bạn cần?</h5>
+                    <p class="text-muted mb-3">Liên hệ với chúng tôi để được hỗ trợ</p>
+                    <a href="tel:19001234" class="btn btn-primary me-2">
+                        <i class="fas fa-phone me-2"></i>Hotline: 1900 1234
+                    </a>
+                    <a href="mailto:support@badmintonshop.com" class="btn btn-outline-primary">
+                        <i class="fas fa-envelope me-2"></i>Email hỗ trợ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

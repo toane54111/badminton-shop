@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý Khách hàng</title>
+    <style>
+        .stats-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .stats-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stats-card .label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .user-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .user-card:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+        }
+
+        .filter-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .verified-badge {
+            color: #28a745;
+            font-size: 0.85rem;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Quản lý Khách hàng</h1>
+                <p class="page-subtitle">Xem thông tin, thống kê và quản lý trạng thái khách hàng</p>
+            </div>
+            <button class="btn btn-success" onclick="exportUsers()">
+                <i class="fas fa-download me-2"></i>Xuất CSV
+            </button>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4" id="statsCards">
+            <div class="col-md-2">
+                <div class="stats-card">
+                    <div class="value" id="totalUsers">-</div>
+                    <div class="label">Tổng KH</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stats-card">
+                    <div class="value text-success" id="activeUsers">-</div>
+                    <div class="label">Đang hoạt động</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stats-card">
+                    <div class="value text-info" id="verifiedUsers">-</div>
+                    <div class="label">Đã xác thực</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stats-card">
+                    <div class="value text-primary" id="newToday">-</div>
+                    <div class="label">Mới hôm nay</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stats-card">
+                    <div class="value text-warning" id="newThisWeek">-</div>
+                    <div class="label">Tuần này</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stats-card">
+                    <div class="value text-danger" id="bannedUsers">-</div>
+                    <div class="label">Bị cấm</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Tìm theo tên, email, SĐT..."
+                        onkeyup="debounceSearch()">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="statusFilter" onchange="loadUsers()">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="ACTIVE">Hoạt động</option>
+                        <option value="BANNED">Bị cấm</option>
+                        <option value="LOCKED">Tạm khóa</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="verifiedFilter" onchange="loadUsers()">
+                        <option value="">Tất cả email</option>
+                        <option value="true">Đã xác thực</option>
+                        <option value="false">Chưa xác thực</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                        <i class="fas fa-redo me-1"></i>Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+        </div>
+
+        <!-- User List -->
+        <div id="userList" class="row" style="display: none;"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-5" style="display: none;">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h5>Không tìm thấy khách hàng</h5>
+            <p class="text-muted">Thử thay đổi bộ lọc để tìm kiếm</p>
+        </div>
+
+        <!-- Pagination -->
+        <nav id="pagination" class="mt-4" style="display: none;">
+            <ul class="pagination justify-content-center"></ul>
+        </nav>
+
+        <!-- User Detail Modal -->
+        <div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chi tiết khách hàng</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="userDetailContent">
+                        <!-- Content loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Update Modal -->
+        <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cập nhật trạng thái</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="statusUserId">
+                        <p>Khách hàng: <strong id="statusUserName"></strong></p>
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái mới</label>
+                            <select class="form-select" id="newUserStatus">
+                                <option value="ACTIVE">Hoạt động</option>
+                                <option value="BANNED">Cấm vĩnh viễn</option>
+                                <option value="LOCKED">Tạm khóa</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Lý do (tùy chọn)</label>
+                            <textarea class="form-control" id="statusReason" rows="2"
+                                placeholder="Nhập lý do..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary" onclick="saveUserStatus()">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            let userList = [];
+            let currentPage = 0;
+            let totalPages = 0;
+            let searchTimeout = null;
+            let userModal = null;
+            let statusModal = null;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('User Management Page Loaded');
+                loadStatistics();
+                loadUsers();
+            });
+
+            function getModal(id) {
+                const el = document.getElementById(id);
+                if (el && window.bootstrap) {
+                    return new bootstrap.Modal(el);
+                }
+                return null;
+            }
+
+            function debounceSearch() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => loadUsers(), 300);
+            }
+
+            function resetFilters() {
+                document.getElementById('searchInput').value = '';
+                document.getElementById('statusFilter').value = '';
+                document.getElementById('verifiedFilter').value = '';
+                loadUsers();
+            }
+
+            async function loadStatistics() {
+                try {
+                    const response = await fetch('/admin/api/users/statistics');
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const stats = result.data;
+                        document.getElementById('totalUsers').textContent = stats.totalUsers;
+                        document.getElementById('activeUsers').textContent = stats.activeUsers;
+                        document.getElementById('verifiedUsers').textContent = stats.verifiedUsers;
+                        document.getElementById('newToday').textContent = stats.newUsersToday;
+                        document.getElementById('newThisWeek').textContent = stats.newUsersThisWeek;
+                        document.getElementById('bannedUsers').textContent = stats.bannedUsers;
+                    }
+                } catch (error) {
+                    console.error('Error loading statistics:', error);
+                }
+            }
+
+            async function loadUsers(page = 0) {
+                try {
+                    const search = document.getElementById('searchInput').value;
+                    const status = document.getElementById('statusFilter').value;
+                    const verified = document.getElementById('verifiedFilter').value;
+
+                    let url = `/admin/api/users?page=${page}&size=12`;
+                    if (search) url += `&search=${encodeURIComponent(search)}`;
+                    if (status) url += `&status=${status}`;
+                    if (verified) url += `&verified=${verified}`;
+
+                    console.log('Fetching:', url);
+                    const response = await fetch(url);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        userList = result.data.content || [];
+                        currentPage = result.data.number || 0;
+                        totalPages = result.data.totalPages || 0;
+                        renderUsers();
+                        renderPagination();
+                    }
+                } catch (error) {
+                    console.error('Error loading users:', error);
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }
+
+            function getStatusName(status) {
+                const names = {
+                    'ACTIVE': 'Hoạt động',
+                    'BANNED': 'Bị cấm',
+                    'LOCKED': 'Tạm khóa'
+                };
+                return names[status] || status;
+            }
+
+            function getStatusClass(status) {
+                const classes = {
+                    'ACTIVE': 'bg-success',
+                    'BANNED': 'bg-danger',
+                    'LOCKED': 'bg-warning'
+                };
+                return classes[status] || 'bg-secondary';
+            }
+
+            function getInitials(name) {
+                if (!name) return '?';
+                return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            }
+
+            function formatDate(dateStr) {
+                if (!dateStr) return '-';
+                return new Date(dateStr).toLocaleDateString('vi-VN');
+            }
+
+            function renderUsers() {
+                const container = document.getElementById('userList');
+                const emptyState = document.getElementById('emptyState');
+
+                if (userList.length === 0) {
+                    emptyState.style.display = 'block';
+                    container.style.display = 'none';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                container.style.display = 'flex';
+                container.innerHTML = userList.map(u => `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="user-card">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="user-avatar me-3">${getInitials(u.fullName)}</div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">${u.fullName || 'N/A'}
+                                        ${u.isEmailVerified ? '<i class="fas fa-check-circle verified-badge" title="Email đã xác thực"></i>' : ''}
+                                    </h6>
+                                    <small class="text-muted">${u.email}</small>
+                                </div>
+                                <span class="badge ${getStatusClass(u.status)} status-badge">${getStatusName(u.status)}</span>
+                            </div>
+                            <div class="mb-2 small text-muted">
+                                ${u.phone ? `<i class="fas fa-phone me-1"></i>${u.phone} | ` : ''}
+                                <i class="fas fa-calendar me-1"></i>Tham gia: ${formatDate(u.createdAt)}
+                            </div>
+                            ${u.skillLevel ? `<span class="badge bg-info me-1">${u.skillLevel}</span>` : ''}
+                            ${u.playingStyle ? `<span class="badge bg-secondary">${u.playingStyle}</span>` : ''}
+                            <div class="btn-group btn-group-sm w-100 mt-3">
+                                <button class="btn btn-outline-primary" onclick="viewUser(${u.userId})" title="Xem chi tiết">
+                                    <i class="fas fa-eye"></i> Chi tiết
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="openStatusModal(${u.userId})" title="Đổi trạng thái">
+                                    <i class="fas fa-user-shield"></i> Trạng thái
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function renderPagination() {
+                const paginationNav = document.getElementById('pagination');
+                const ul = paginationNav.querySelector('ul');
+
+                if (totalPages <= 1) {
+                    paginationNav.style.display = 'none';
+                    return;
+                }
+
+                paginationNav.style.display = 'block';
+                let html = '';
+
+                html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadUsers(${currentPage - 1}); return false;">«</a>
+                </li>`;
+
+                for (let i = 0; i < totalPages; i++) {
+                    if (i < 3 || i > totalPages - 3 || Math.abs(i - currentPage) < 2) {
+                        html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="loadUsers(${i}); return false;">${i + 1}</a>
+                        </li>`;
+                    } else if (i === 3 || i === totalPages - 3) {
+                        html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+                }
+
+                html += `<li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadUsers(${currentPage + 1}); return false;">»</a>
+                </li>`;
+
+                ul.innerHTML = html;
+            }
+
+            async function viewUser(id) {
+                try {
+                    const response = await fetch(`/admin/api/users/${id}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const u = result.data;
+                        document.getElementById('userDetailContent').innerHTML = `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Thông tin cơ bản</h6>
+                                    <table class="table table-sm">
+                                        <tr><td>Email:</td><td><strong>${u.email}</strong></td></tr>
+                                        <tr><td>Họ tên:</td><td>${u.fullName || '-'}</td></tr>
+                                        <tr><td>SĐT:</td><td>${u.phone || '-'}</td></tr>
+                                        <tr><td>Giới tính:</td><td>${u.gender || '-'}</td></tr>
+                                        <tr><td>Ngày sinh:</td><td>${u.dateOfBirth || '-'}</td></tr>
+                                        <tr><td>Trạng thái:</td><td><span class="badge ${getStatusClass(u.status)}">${getStatusName(u.status)}</span></td></tr>
+                                        <tr><td>Email xác thực:</td><td>${u.isEmailVerified ? '<i class="fas fa-check text-success"></i> Đã xác thực' : '<i class="fas fa-times text-danger"></i> Chưa'}</td></tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Hồ sơ chơi cầu</h6>
+                                    <table class="table table-sm">
+                                        <tr><td>Phong cách:</td><td>${u.playingStyle || '-'}</td></tr>
+                                        <tr><td>Trình độ:</td><td>${u.skillLevel || '-'}</td></tr>
+                                        <tr><td>Trọng lượng vợt:</td><td>${u.preferredRacketWeight || '-'}</td></tr>
+                                    </table>
+                                    <h6 class="mt-3">Thống kê</h6>
+                                    <table class="table table-sm">
+                                        <tr><td>Tổng đơn hàng:</td><td><strong>${u.totalOrders || 0}</strong></td></tr>
+                                        <tr><td>Đánh giá:</td><td><strong>${u.totalReviews || 0}</strong></td></tr>
+                                        <tr><td>Đăng nhập cuối:</td><td>${u.lastLoginAt ? formatDate(u.lastLoginAt) : '-'}</td></tr>
+                                        <tr><td>Ngày tạo:</td><td>${formatDate(u.createdAt)}</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+
+                        userModal = getModal('userModal');
+                        if (userModal) userModal.show();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Lỗi tải thông tin khách hàng');
+                }
+            }
+
+            function openStatusModal(id) {
+                const user = userList.find(u => u.userId === id);
+                if (!user) return;
+
+                document.getElementById('statusUserId').value = id;
+                document.getElementById('statusUserName').textContent = user.fullName + ' (' + user.email + ')';
+                document.getElementById('newUserStatus').value = user.status;
+                document.getElementById('statusReason').value = '';
+
+                statusModal = getModal('statusModal');
+                if (statusModal) statusModal.show();
+            }
+
+            async function saveUserStatus() {
+                const id = document.getElementById('statusUserId').value;
+                const status = document.getElementById('newUserStatus').value;
+                const reason = document.getElementById('statusReason').value;
+
+                try {
+                    const response = await fetch(`/admin/api/users/${id}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status, reason })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        if (statusModal) statusModal.hide();
+                        loadUsers(currentPage);
+                        loadStatistics();
+                        alert('Cập nhật trạng thái thành công!');
+                    } else {
+                        alert('Lỗi: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+
+            function exportUsers() {
+                const search = document.getElementById('searchInput').value;
+                const status = document.getElementById('statusFilter').value;
+
+                let url = '/admin/api/users/export?';
+                if (search) url += `search=${encodeURIComponent(search)}&`;
+                if (status) url += `status=${status}`;
+
+                window.location.href = url;
+            }
+        </script>
+    </div>
+</body>
+
+</html>

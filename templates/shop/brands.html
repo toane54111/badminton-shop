@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title>Thương hiệu</title>
+    <style>
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .brand-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .brand-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .brand-logo {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin-bottom: 1rem;
+        }
+
+        .brand-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .brand-country {
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="container">
+                <h1>Thương hiệu</h1>
+                <p class="mb-0">Các thương hiệu cầu lông hàng đầu thế giới</p>
+            </div>
+        </div>
+
+        <div class="container pb-5">
+            <div class="row g-4">
+                <div class="col-6 col-md-4 col-lg-3" th:each="brand : ${brands}">
+                    <a th:href="@{/products(brandId=${brand.brandId})}" class="text-decoration-none">
+                        <div class="brand-card">
+                            <img th:src="${brand.logoUrl ?: '/images/no-image.png'}" th:alt="${brand.name}"
+                                class="brand-logo">
+                            <div class="brand-name" th:text="${brand.name}">Brand Name</div>
+                            <div class="brand-country" th:text="${brand.country}" th:if="${brand.country}">Country</div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Empty State -->
+                <div class="col-12" th:if="${brands == null or #lists.isEmpty(brands)}">
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-tags fa-3x mb-3"></i>
+                        <h5>Chưa có thương hiệu</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

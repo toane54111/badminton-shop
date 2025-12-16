@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Thông báo từ Badminton Shop</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f4;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .badge-promo {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .badge-system {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 25px;
+        }
+
+        .coupon-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .coupon-code {
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px 25px;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        .coupon-discount {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .coupon-expiry {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            text-decoration: none;
+            padding: 14px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 15px;
+            margin: 15px 0;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="font-size: 20px; margin-bottom: 8px;">🏸 Badminton Shop</div>
+            <h1 th:text="${title}">Thông báo mới</h1>
+        </div>
+        <div class="content">
+            <span class="badge" th:classappend="${type == 'PROMOTION'} ? 'badge-promo' : 'badge-system'"
+                th:text="${type == 'PROMOTION'} ? 'Khuyến mãi' : 'Thông báo'">Thông báo</span>
+            <p th:if="${userName != null}">Xin chào <strong th:text="${userName}">Khách hàng</strong>,</p>
+            <div class="message" th:utext="${message}">Nội dung thông báo.</div>
+            <div th:if="${couponCode != null}" class="coupon-box">
+                <div th:if="${discountText != null}" class="coupon-discount" th:text="${discountText}">Giảm 20%</div>
+                <div class="coupon-code" th:text="${couponCode}">CODE123</div>
+                <div th:if="${couponExpiry != null}" class="coupon-expiry">Hết hạn: <span
+                        th:text="${couponExpiry}">31/12/2024</span></div>
+            </div>
+            <div th:if="${actionUrl != null}" style="text-align: center;">
+                <a th:href="${actionUrl}" class="cta-button">Xem ngay →</a>
+            </div>
+        </div>
+        <div class="footer">
+            <p>Bạn nhận được email này vì đã đăng ký nhận thông báo từ Badminton Shop.</p>
+            <p><a th:href="${baseUrl}">Truy cập website</a></p>
+            <p style="margin-top: 10px; color: #999;">© 2024 Badminton Shop</p>
+        </div>
+    </div>
+</body>
+
+</html>
