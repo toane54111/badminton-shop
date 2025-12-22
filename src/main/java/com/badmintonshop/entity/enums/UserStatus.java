@@ -1,7 +1,7 @@
 package com.badmintonshop.entity.enums;
 
 /**
- * User Status
+ * User Status - Values must match MySQL ENUM exactly (UPPERCASE)
  */
 public enum UserStatus {
     ACTIVE,      // Hoạt động bình thường

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<!-- Admin Header Fragment -->
+<header th:fragment="header" class="admin-header">
+    <!-- Left Side -->
+    <div class="header-left">
+        <!-- Sidebar Toggle -->
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Search -->
+        <div class="header-search d-none d-md-block">
+            <i class="fas fa-search"></i>
+            <input type="text" class="form-control" placeholder="Tìm kiếm...">
+        </div>
+    </div>
+
+    <!-- Right Side -->
+    <div class="header-right">
+        <!-- Notifications -->
+        <button class="header-icon-btn" title="Thông báo">
+            <i class="fas fa-bell"></i>
+            <span class="badge bg-danger">3</span>
+        </button>
+
+        <!-- Messages -->
+        <button class="header-icon-btn" title="Tin nhắn">
+            <i class="fas fa-comments"></i>
+            <span class="badge bg-primary">5</span>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="dropdown">
+            <div class="user-dropdown-toggle" data-bs-toggle="dropdown">
+                <img th:src="@{/images/default-avatar.png}"
+                    onerror="this.src='https://ui-avatars.com/api/?name=Admin&background=667eea&color=fff'" alt="Avatar"
+                    class="user-avatar">
+                <div class="user-info d-none d-md-block">
+                    <div class="user-name" sec:authentication="principal.fullName">Admin</div>
+                    <div class="user-role" sec:authentication="principal.staff.role">ADMIN</div>
+                </div>
+                <i class="fas fa-chevron-down ms-2 text-muted d-none d-md-inline"></i>
+            </div>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li class="px-3 py-2 border-bottom">
+                    <div class="fw-bold" sec:authentication="principal.fullName">Admin</div>
+                    <div class="text-muted small" sec:authentication="principal.username">admin@shop.vn</div>
+                </li>
+                <li>
+                    <a class="dropdown-item" th:href="@{/admin/profile}">
+                        <i class="fas fa-user me-2"></i>Hồ sơ
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" th:href="@{/admin/settings}">
+                        <i class="fas fa-cog me-2"></i>Cài đặt
+                    </a>
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li>
+                    <form th:action="@{/admin/logout}" method="post" class="m-0">
+                        <button type="submit" class="dropdown-item text-danger">
+                            <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
+
+</html>

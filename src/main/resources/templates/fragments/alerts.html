@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Success Alert -->
+<div th:fragment="success" th:if="${success}" class="alert alert-success alert-dismissible fade show animate-slideUp">
+    <i class="fas fa-check-circle me-2"></i>
+    <span th:text="${success}">Success message</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<!-- Error Alert -->
+<div th:fragment="error" th:if="${error}" class="alert alert-danger alert-dismissible fade show animate-slideUp">
+    <i class="fas fa-exclamation-circle me-2"></i>
+    <span th:text="${error}">Error message</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<!-- Warning Alert -->
+<div th:fragment="warning" th:if="${warning}" class="alert alert-warning alert-dismissible fade show animate-slideUp">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <span th:text="${warning}">Warning message</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<!-- Info Alert -->
+<div th:fragment="info" th:if="${info}" class="alert alert-info alert-dismissible fade show animate-slideUp">
+    <i class="fas fa-info-circle me-2"></i>
+    <span th:text="${info}">Info message</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<!-- All Alerts (combines all) -->
+<div th:fragment="all">
+    <div th:replace="~{fragments/alerts :: success}"></div>
+    <div th:replace="~{fragments/alerts :: error}"></div>
+    <div th:replace="~{fragments/alerts :: warning}"></div>
+    <div th:replace="~{fragments/alerts :: info}"></div>
+</div>
+
+<!-- Flash Messages (from redirect attributes) -->
+<div th:fragment="flash">
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show animate-slideUp">
+        <i class="fas fa-check-circle me-2"></i>
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show animate-slideUp">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</div>
+
+</html>

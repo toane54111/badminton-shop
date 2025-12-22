@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập Admin - Badminton Shop</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Main CSS -->
+    <link th:href="@{/css/main.css}" rel="stylesheet">
+
+    <!-- Admin CSS -->
+    <link th:href="@{/css/admin.css}" rel="stylesheet">
+</head>
+
+<body class="admin-login-page">
+    <div class="admin-login-card">
+        <!-- Logo -->
+        <div class="admin-login-logo">
+            <i class="fas fa-shuttlecock"></i>
+            <h1>Admin Panel</h1>
+            <p>Đăng nhập để quản lý hệ thống</p>
+        </div>
+
+        <!-- Alerts -->
+        <div th:if="${param.error}" class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span
+                th:text="${session.SPRING_SECURITY_LAST_EXCEPTION?.message} ?: 'Email hoặc mật khẩu không đúng'"></span>
+        </div>
+
+        <div th:if="${param.logout}" class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            Đăng xuất thành công
+        </div>
+
+        <div th:if="${param.expired}" class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Phiên đăng nhập đã hết hạn
+        </div>
+
+        <!-- Login Form -->
+        <form th:action="@{/admin/login}" method="post">
+            <div class="form-floating mb-3">
+                <input type="email" class="form-control" id="email" name="email" placeholder="Email" required autofocus>
+                <label for="email"><i class="fas fa-envelope me-2"></i>Email</label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Mật khẩu"
+                    required>
+                <label for="password"><i class="fas fa-lock me-2"></i>Mật khẩu</label>
+            </div>
+
+            <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" name="remember-me" id="rememberMe">
+                <label class="form-check-label" for="rememberMe">Ghi nhớ đăng nhập</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2">
+                <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+            </button>
+        </form>
+
+        <div class="text-center mt-4">
+            <a th:href="@{/admin/forgot-password}" class="text-muted small">Quên mật khẩu?</a>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="text-center">
+            <a th:href="@{/}" class="text-muted small">
+                <i class="fas fa-arrow-left me-1"></i>Về trang chủ
+            </a>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

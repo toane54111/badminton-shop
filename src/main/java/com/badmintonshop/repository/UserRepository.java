@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -85,4 +86,76 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable);
+
+    /**
+     * Find users with filters (search, status) with pagination
+     */
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL " +
+           "AND (:search IS NULL OR :search = '' " +
+           "     OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "     OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "     OR u.phone LIKE CONCAT('%', :search, '%')) " +
+           "AND (:status IS NULL OR u.status = :status) " +
+           "AND (:verified IS NULL OR u.isEmailVerified = :verified) " +
+           "ORDER BY u.createdAt DESC")
+    Page<User> findWithFilters(@Param("search") String search,
+                               @Param("status") UserStatus status,
+                               @Param("verified") Boolean verified,
+                               Pageable pageable);
+
+    /**
+     * Count users registered between dates
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.deletedAt IS NULL " +
+           "AND u.createdAt BETWEEN :startDate AND :endDate")
+    long countRegisteredBetween(@Param("startDate") LocalDateTime startDate,
+                                @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Count users with verified email
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.deletedAt IS NULL AND u.isEmailVerified = true")
+    long countVerifiedUsers();
+
+    /**
+     * Count active users (logged in between dates)
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.deletedAt IS NULL " +
+           "AND u.lastLoginAt BETWEEN :startDate AND :endDate")
+    long countActiveUsersBetween(@Param("startDate") LocalDateTime startDate,
+                                 @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Daily registration count for last N days
+     */
+    @Query(value = "SELECT DATE(created_at) as date, COUNT(*) as count " +
+                   "FROM users WHERE deleted_at IS NULL " +
+                   "AND created_at >= :startDate " +
+                   "GROUP BY DATE(created_at) " +
+                   "ORDER BY date ASC", nativeQuery = true)
+    List<Object[]> countDailyRegistrations(@Param("startDate") LocalDateTime startDate);
+
+    /**
+     * Count users by gender
+     */
+    @Query("SELECT u.gender, COUNT(u) FROM User u WHERE u.deletedAt IS NULL AND u.gender IS NOT NULL GROUP BY u.gender")
+    List<Object[]> countByGender();
+
+    /**
+     * Count users by skill level
+     */
+    @Query("SELECT u.skillLevel, COUNT(u) FROM User u WHERE u.deletedAt IS NULL AND u.skillLevel IS NOT NULL GROUP BY u.skillLevel")
+    List<Object[]> countBySkillLevel();
+
+    /**
+     * Find all users for export (no pagination)
+     */
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL " +
+           "AND (:search IS NULL OR :search = '' " +
+           "     OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "     OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:status IS NULL OR u.status = :status) " +
+           "ORDER BY u.createdAt DESC")
+    List<User> findAllForExport(@Param("search") String search,
+                                @Param("status") UserStatus status);
 }
