@@ -166,9 +166,21 @@
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body p-4">
                 <div class="d-flex align-items-center">
-                    <img th:src="${profile.avatarUrl ?: 'https://via.placeholder.com/150'}" alt="Avatar"
-                        class="rounded-circle me-4"
-                        style="width: 80px; height: 80px; object-fit: cover; border: 3px solid var(--primary);">
+                    <div class="position-relative me-4">
+                        <img th:src="${profile.avatarUrl != null ? profile.avatarUrl : 'https://ui-avatars.com/api/?name=' + #strings.replace(profile.fullName, ' ', '+') + '&amp;background=667eea&amp;color=fff&amp;size=80'}"
+                            alt="Avatar" class="rounded-circle"
+                            style="width: 80px; height: 80px; object-fit: cover; border: 3px solid var(--primary);"
+                            id="avatarPreview"
+                            onerror="this.src='https://ui-avatars.com/api/?name=User&amp;background=667eea&amp;color=fff&amp;size=80';">
+                        <label for="avatarInput"
+                            class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                            style="width: 28px; height: 28px; cursor: pointer; border: 2px solid white;"
+                            title="Đổi ảnh đại diện">
+                            <i class="fas fa-camera" style="font-size: 12px;"></i>
+                        </label>
+                        <input type="file" id="avatarInput" accept="image/*" style="display: none;"
+                            onchange="uploadAvatar(this)">
+                    </div>
                     <div>
                         <h4 class="mb-1" th:text="${profile.fullName}">User Name</h4>
                         <p class="text-muted mb-0" th:text="${profile.email}">user@example.com</p>
@@ -311,10 +323,8 @@
                                     <label class="form-label">Trọng lượng vợt ưa thích</label>
                                     <select class="form-select" name="preferredRacketWeight">
                                         <option value="">-- Chọn trọng lượng --</option>
-                                        <option th:each="w : ${ {'2U','3U','4U','5U'} }"
-                                                th:value="${w}"
-                                                th:text="${w}"
-                                                th:selected="${profile.preferredRacketWeight == w}">
+                                        <option th:each="w : ${ {'2U','3U','4U','5U'} }" th:value="${w}" th:text="${w}"
+                                            th:selected="${profile.preferredRacketWeight == w}">
                                         </option>
                                     </select>
                                 </div>
@@ -690,6 +700,53 @@
                 if (res.ok) location.reload();
                 else showToast('Lỗi khi đặt mặc định', 'Lỗi', true);
             } catch (e) { showToast('Lỗi kết nối', 'Lỗi', true); }
+        }
+
+        // Avatar Upload
+        async function uploadAvatar(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const file = input.files[0];
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showToast('Vui lòng chọn file ảnh', 'Lỗi', true);
+                return;
+            }
+
+            // Validate file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('Ảnh phải nhỏ hơn 2MB', 'Lỗi', true);
+                return;
+            }
+
+            showToast('Đang tải ảnh lên...', 'Thông báo');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/users/avatar', {
+                    method: 'POST',
+                    headers: { [csrfHeader]: csrfToken },
+                    body: formData
+                });
+
+                const result = await res.json();
+
+                if (res.ok && result.success) {
+                    showToast('Cập nhật ảnh đại diện thành công');
+                    document.getElementById('avatarPreview').src = result.avatarUrl;
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.error || 'Upload thất bại', 'Lỗi', true);
+                }
+            } catch (err) {
+                console.error('Avatar upload error:', err);
+                showToast('Lỗi kết nối', 'Lỗi', true);
+            }
+
+            input.value = '';
         }
     </script>
 </body>

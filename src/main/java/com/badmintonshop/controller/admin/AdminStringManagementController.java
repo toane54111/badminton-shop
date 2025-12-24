@@ -4,11 +4,17 @@ import com.badmintonshop.dto.request.StringProductRequest;
 import com.badmintonshop.dto.request.StringingServiceRequest;
 import com.badmintonshop.dto.response.StringProductResponse;
 import com.badmintonshop.dto.response.StringingServiceResponse;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
 import com.badmintonshop.repository.BrandRepository;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.StringProductService;
 import com.badmintonshop.service.StringingServiceService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -23,6 +29,8 @@ public class AdminStringManagementController {
     private final StringProductService stringProductService;
     private final StringingServiceService stringingServiceService;
     private final BrandRepository brandRepository;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     // --- String Products ---
 
@@ -43,13 +51,16 @@ public class AdminStringManagementController {
     public String createString(@Valid @ModelAttribute("stringProduct") StringProductRequest request,
             BindingResult result,
             Model model,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes,
+            HttpServletRequest httpRequest) {
         if (result.hasErrors()) {
             model.addAttribute("brands", brandRepository.findAll());
             return "admin/products/strings/form";
         }
         try {
-            stringProductService.create(request);
+            StringProductResponse created = stringProductService.create(request);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.CREATE, "StringProduct", 
+                created.getStringId(), "Tạo cước: " + created.getName(), null, created, httpRequest);
             redirectAttributes.addFlashAttribute("success", "Thêm cước mới thành công");
         } catch (Exception e) {
             model.addAttribute("brands", brandRepository.findAll());
@@ -97,14 +108,17 @@ public class AdminStringManagementController {
             @Valid @ModelAttribute("stringProduct") StringProductRequest request,
             BindingResult result,
             Model model,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes,
+            HttpServletRequest httpRequest) {
         if (result.hasErrors()) {
             model.addAttribute("brands", brandRepository.findAll());
             model.addAttribute("id", id);
             return "admin/products/strings/form";
         }
         try {
-            stringProductService.update(id, request);
+            StringProductResponse updated = stringProductService.update(id, request);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "StringProduct", 
+                id, "Cập nhật cước: " + updated.getName(), null, updated, httpRequest);
             redirectAttributes.addFlashAttribute("success", "Cập nhật cước thành công");
         } catch (Exception e) {
             model.addAttribute("brands", brandRepository.findAll());
@@ -116,9 +130,11 @@ public class AdminStringManagementController {
     }
 
     @PostMapping("/products/strings/{id}/delete")
-    public String deleteString(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String deleteString(@PathVariable Long id, RedirectAttributes redirectAttributes, HttpServletRequest httpRequest) {
         try {
             stringProductService.delete(id);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.DELETE, "StringProduct", 
+                id, "Xóa cước ID: " + id, null, null, httpRequest);
             redirectAttributes.addFlashAttribute("success", "Xóa cước thành công");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
@@ -204,5 +220,10 @@ public class AdminStringManagementController {
             redirectAttributes.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
         }
         return "redirect:/admin/services/stringing";
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

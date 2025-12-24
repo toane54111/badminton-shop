@@ -1,19 +1,23 @@
 package com.badmintonshop.controller.admin;
 
 import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
 import com.badmintonshop.entity.enums.StaffRole;
 
 import java.util.List;
 import com.badmintonshop.entity.enums.StringingStatus;
 import com.badmintonshop.repository.OrderItemRepository;
 import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.StringingBookingService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,6 +41,7 @@ public class AdminStringingController {
     private final OrderItemRepository orderItemRepository;
     private final StaffRepository staffRepository;
     private final StringingBookingService bookingService;
+    private final AuditService auditService;
 
     @GetMapping
     public String listRequests(Model model, Authentication authentication,
@@ -88,9 +93,12 @@ public class AdminStringingController {
     @PostMapping("/assign")
     public String assignStaff(@RequestParam Long orderItemId,
             @RequestParam Long staffId,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes,
+            HttpServletRequest request) {
         try {
             bookingService.assignStaff(orderItemId, staffId);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Stringing", 
+                orderItemId, "Giao đơn đan vợt cho nhân viên ID: " + staffId, null, null, request);
             redirectAttributes.addFlashAttribute("success", "Assigned successfully");
         } catch (Exception e) {
             e.printStackTrace(); // Log error for debugging
@@ -100,9 +108,11 @@ public class AdminStringingController {
     }
 
     @PostMapping("/start")
-    public String startStringing(@RequestParam Long orderItemId, RedirectAttributes redirectAttributes) {
+    public String startStringing(@RequestParam Long orderItemId, RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             bookingService.startStringing(orderItemId);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Stringing", 
+                orderItemId, "Bắt đầu đan vợt", null, null, request);
             redirectAttributes.addFlashAttribute("success", "Đã bắt đầu đan vợt");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Lỗi: " + e.getMessage());
@@ -111,9 +121,11 @@ public class AdminStringingController {
     }
 
     @PostMapping("/complete")
-    public String completeStringing(@RequestParam Long orderItemId, RedirectAttributes redirectAttributes) {
+    public String completeStringing(@RequestParam Long orderItemId, RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             bookingService.completeStringing(orderItemId);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Stringing", 
+                orderItemId, "Hoàn thành đan vợt", null, null, request);
             redirectAttributes.addFlashAttribute("success", "Đã hoàn thành đan vợt");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Lỗi: " + e.getMessage());
@@ -122,9 +134,11 @@ public class AdminStringingController {
     }
 
     @PostMapping("/qc-approve")
-    public String approveQuality(@RequestParam Long orderItemId, RedirectAttributes redirectAttributes) {
+    public String approveQuality(@RequestParam Long orderItemId, RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             bookingService.approveQuality(orderItemId);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Stringing", 
+                orderItemId, "Kiểm tra chất lượng & duyệt", null, null, request);
             redirectAttributes.addFlashAttribute("success", "Quality Checked & Approved");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
@@ -136,5 +150,10 @@ public class AdminStringingController {
     public String showDashboard(Model model) {
         model.addAttribute("workload", bookingService.getStaffWorkload());
         return "admin/stringing/dashboard";
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

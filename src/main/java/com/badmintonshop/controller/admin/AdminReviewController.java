@@ -1,8 +1,13 @@
 package com.badmintonshop.controller.admin;
 
 import com.badmintonshop.dto.review.ReviewResponse;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
 import com.badmintonshop.entity.enums.ReviewStatus;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.ReviewService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -11,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +34,8 @@ import java.util.Map;
 public class AdminReviewController {
 
     private final ReviewService reviewService;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     /**
      * Reviews management page
@@ -64,9 +72,11 @@ public class AdminReviewController {
     @PostMapping("/api/reviews/{reviewId}/approve")
     @ResponseBody
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('content.edit')")
-    public ResponseEntity<Map<String, Object>> approveReview(@PathVariable Long reviewId) {
+    public ResponseEntity<Map<String, Object>> approveReview(@PathVariable Long reviewId, HttpServletRequest request) {
         try {
             reviewService.approveReview(reviewId);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Review", 
+                reviewId, "Duyệt đánh giá ID: " + reviewId, null, null, request);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Đã duyệt đánh giá thành công"
@@ -89,10 +99,13 @@ public class AdminReviewController {
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('content.edit')")
     public ResponseEntity<Map<String, Object>> rejectReview(
             @PathVariable Long reviewId,
-            @RequestBody(required = false) Map<String, String> body) {
+            @RequestBody(required = false) Map<String, String> body,
+            HttpServletRequest request) {
         try {
             String reason = body != null ? body.get("reason") : null;
             reviewService.rejectReview(reviewId, reason);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Review", 
+                reviewId, "Từ chối đánh giá ID: " + reviewId + (reason != null ? " - Lý do: " + reason : ""), null, null, request);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Đã từ chối đánh giá"
@@ -113,9 +126,11 @@ public class AdminReviewController {
     @DeleteMapping("/api/reviews/{reviewId}")
     @ResponseBody
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('content.delete')")
-    public ResponseEntity<Map<String, Object>> deleteReview(@PathVariable Long reviewId) {
+    public ResponseEntity<Map<String, Object>> deleteReview(@PathVariable Long reviewId, HttpServletRequest request) {
         try {
             reviewService.adminDeleteReview(reviewId);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.DELETE, "Review", 
+                reviewId, "Xóa đánh giá ID: " + reviewId, null, null, request);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Đã xóa đánh giá"
@@ -137,5 +152,10 @@ public class AdminReviewController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getReviewStats() {
         return ResponseEntity.ok(reviewService.getReviewStats());
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

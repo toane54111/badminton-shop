@@ -4,6 +4,10 @@ import com.badmintonshop.dto.banner.BannerDTO;
 import com.badmintonshop.dto.product.BrandDTO;
 import com.badmintonshop.dto.product.CategoryDTO;
 import com.badmintonshop.dto.product.ProductListDTO;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.BannerService;
 import com.badmintonshop.service.BrandService;
 import com.badmintonshop.service.CategoryService;
@@ -11,6 +15,7 @@ import com.badmintonshop.service.CouponService;
 import com.badmintonshop.service.ProductService;
 import com.badmintonshop.service.ProductVariantService;
 import com.badmintonshop.service.PromotionService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -39,6 +45,8 @@ public class AdminTrashController {
     private final ProductVariantService productVariantService;
     private final CouponService couponService;
     private final PromotionService promotionService;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     // ===== PRODUCTS =====
 
@@ -63,9 +71,11 @@ public class AdminTrashController {
      * POST /admin/api/trash/products/{id}/restore
      */
     @PostMapping("/products/{id}/restore")
-    public ResponseEntity<?> restoreProduct(@PathVariable Long id) {
+    public ResponseEntity<?> restoreProduct(@PathVariable Long id, HttpServletRequest request) {
         try {
             productService.restoreProduct(id);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Product", 
+                id, "Khôi phục sản phẩm từ thùng rác", null, null, request);
             return ResponseEntity.ok(Map.of("message", "Đã khôi phục sản phẩm"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -77,9 +87,11 @@ public class AdminTrashController {
      * DELETE /admin/api/trash/products/{id}
      */
     @DeleteMapping("/products/{id}")
-    public ResponseEntity<?> hardDeleteProduct(@PathVariable Long id) {
+    public ResponseEntity<?> hardDeleteProduct(@PathVariable Long id, HttpServletRequest request) {
         try {
             productService.hardDeleteProduct(id);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.DELETE, "Product", 
+                id, "Xóa vĩnh viễn sản phẩm", null, null, request);
             return ResponseEntity.ok(Map.of("message", "Đã xóa vĩnh viễn sản phẩm"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -350,5 +362,10 @@ public class AdminTrashController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

@@ -1,7 +1,12 @@
 package com.badmintonshop.controller.admin;
 
 import com.badmintonshop.dto.faq.FAQDTO;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.FAQService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -10,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -24,6 +30,8 @@ import java.util.Map;
 public class AdminFAQApiController {
 
     private final FAQService faqService;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     /**
      * Get all FAQs with pagination
@@ -58,9 +66,11 @@ public class AdminFAQApiController {
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CONTENT_STAFF') or hasAuthority('faqs.create')")
-    public ResponseEntity<?> createFAQ(@RequestBody FAQDTO dto) {
+    public ResponseEntity<?> createFAQ(@RequestBody FAQDTO dto, HttpServletRequest request) {
         try {
             FAQDTO created = faqService.createFAQ(dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.CREATE, "FAQ", 
+                created.getFaqId(), "Tạo FAQ: " + created.getQuestion(), null, created, request);
             log.info("Created FAQ: {}", created.getQuestion());
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
@@ -76,10 +86,13 @@ public class AdminFAQApiController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CONTENT_STAFF') or hasAuthority('faqs.update')")
     public ResponseEntity<?> updateFAQ(
             @PathVariable Long id,
-            @RequestBody FAQDTO dto) {
+            @RequestBody FAQDTO dto,
+            HttpServletRequest request) {
 
         try {
             FAQDTO updated = faqService.updateFAQ(id, dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "FAQ", 
+                id, "Cập nhật FAQ: " + updated.getQuestion(), null, updated, request);
             log.info("Updated FAQ: {}", updated.getQuestion());
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
@@ -93,9 +106,11 @@ public class AdminFAQApiController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CONTENT_STAFF') or hasAuthority('faqs.delete')")
-    public ResponseEntity<?> deleteFAQ(@PathVariable Long id) {
+    public ResponseEntity<?> deleteFAQ(@PathVariable Long id, HttpServletRequest request) {
         try {
             faqService.deleteFAQ(id);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.DELETE, "FAQ", 
+                id, "Xóa FAQ ID: " + id, null, null, request);
             return ResponseEntity.ok(Map.of("message", "Đã xóa FAQ"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -115,5 +130,10 @@ public class AdminFAQApiController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

@@ -164,4 +164,50 @@ public class FileStorageService {
         sb.append("]");
         return sb.toString();
     }
+
+    /**
+     * Store user avatar and return the URL
+     * @param file The avatar image file
+     * @param userId The user's ID (used for filename)
+     * @return The URL to access the avatar
+     */
+    public String storeUserAvatar(MultipartFile file, Long userId) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File không được để trống");
+        }
+
+        // Validate file type
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Chỉ chấp nhận file ảnh");
+        }
+
+        // Validate file size (max 2MB for avatars)
+        if (file.getSize() > 2 * 1024 * 1024) {
+            throw new IllegalArgumentException("Ảnh phải nhỏ hơn 2MB");
+        }
+
+        // Create avatars directory if not exists
+        Path avatarsPath = Paths.get(uploadDir, "avatars");
+        if (!Files.exists(avatarsPath)) {
+            Files.createDirectories(avatarsPath);
+        }
+
+        // Generate filename with userId for easy replacement
+        String originalFilename = file.getOriginalFilename();
+        String extension = ".jpg";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String newFilename = "avatar_" + userId + "_" + System.currentTimeMillis() + extension;
+
+        // Save file
+        Path filePath = avatarsPath.resolve(newFilename);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        String avatarUrl = "/" + uploadDir + "/avatars/" + newFilename;
+        log.info("Saved avatar for user {}: {}", userId, avatarUrl);
+        
+        return avatarUrl;
+    }
 }

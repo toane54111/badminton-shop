@@ -3,8 +3,13 @@ package com.badmintonshop.controller.admin;
 import com.badmintonshop.dto.inventory.InventoryAdjustRequest;
 import com.badmintonshop.dto.inventory.InventoryDTO;
 import com.badmintonshop.dto.inventory.InventoryTransactionDTO;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
 import com.badmintonshop.entity.enums.TransactionType;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.InventoryService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +35,8 @@ import java.util.Map;
 public class AdminInventoryController {
 
     private final InventoryService inventoryService;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     /**
      * Get all inventory with filters
@@ -90,9 +98,12 @@ public class AdminInventoryController {
     public ResponseEntity<?> updateStock(
             @PathVariable Long inventoryId,
             @RequestParam int quantity,
-            @RequestParam(required = false) String reason) {
+            @RequestParam(required = false) String reason,
+            HttpServletRequest request) {
         try {
             InventoryDTO updated = inventoryService.updateStock(inventoryId, quantity, reason);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Inventory", 
+                inventoryId, "Cập nhật tồn kho: " + quantity + (reason != null ? " - " + reason : ""), null, updated, request);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -105,9 +116,11 @@ public class AdminInventoryController {
      */
     @PostMapping("/adjust")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import') or hasAuthority('inventory.export')")
-    public ResponseEntity<?> adjustStock(@Valid @RequestBody InventoryAdjustRequest request) {
+    public ResponseEntity<?> adjustStock(@Valid @RequestBody InventoryAdjustRequest request, HttpServletRequest httpRequest) {
         try {
             InventoryDTO updated = inventoryService.adjustStock(request);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Inventory", 
+                request.getInventoryId(), "Điều chỉnh tồn kho: " + request.getAdjustment(), null, updated, httpRequest);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -123,9 +136,12 @@ public class AdminInventoryController {
     public ResponseEntity<?> restockInventory(
             @PathVariable Long inventoryId,
             @RequestParam int quantity,
-            @RequestParam(required = false) Long purchaseOrderId) {
+            @RequestParam(required = false) Long purchaseOrderId,
+            HttpServletRequest request) {
         try {
             InventoryDTO updated = inventoryService.restock(inventoryId, quantity, purchaseOrderId);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Inventory", 
+                inventoryId, "Nhập kho: +" + quantity, null, updated, request);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -146,4 +162,10 @@ public class AdminInventoryController {
         return ResponseEntity
                 .ok(inventoryService.getTransactionHistory(productId, transactionType, null, null, pageable));
     }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
+    }
 }
+

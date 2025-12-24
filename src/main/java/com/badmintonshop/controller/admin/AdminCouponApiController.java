@@ -1,8 +1,13 @@
 package com.badmintonshop.controller.admin;
 
 import com.badmintonshop.dto.coupon.AdminCouponDTO;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
 import com.badmintonshop.entity.enums.CouponType;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.CouponService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -12,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -26,6 +32,8 @@ import java.util.Map;
 public class AdminCouponApiController {
 
     private final CouponService couponService;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     /**
      * Get all coupons with pagination
@@ -66,9 +74,11 @@ public class AdminCouponApiController {
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CONTENT_STAFF') or hasAuthority('coupons.create')")
-    public ResponseEntity<?> createCoupon(@Valid @RequestBody AdminCouponDTO dto) {
+    public ResponseEntity<?> createCoupon(@Valid @RequestBody AdminCouponDTO dto, HttpServletRequest request) {
         try {
             AdminCouponDTO created = couponService.createCoupon(dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.CREATE, "Coupon", 
+                created.getCouponId(), "Tạo mã giảm giá: " + created.getCode(), null, created, request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -81,9 +91,11 @@ public class AdminCouponApiController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CONTENT_STAFF') or hasAuthority('coupons.update')")
-    public ResponseEntity<?> updateCoupon(@PathVariable Long id, @Valid @RequestBody AdminCouponDTO dto) {
+    public ResponseEntity<?> updateCoupon(@PathVariable Long id, @Valid @RequestBody AdminCouponDTO dto, HttpServletRequest request) {
         try {
             AdminCouponDTO updated = couponService.updateCoupon(id, dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Coupon", 
+                id, "Cập nhật mã giảm giá: " + updated.getCode(), null, updated, request);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -96,9 +108,11 @@ public class AdminCouponApiController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CONTENT_STAFF') or hasAuthority('coupons.delete')")
-    public ResponseEntity<?> deleteCoupon(@PathVariable Long id) {
+    public ResponseEntity<?> deleteCoupon(@PathVariable Long id, HttpServletRequest request) {
         try {
             couponService.deleteCoupon(id);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.DELETE, "Coupon", 
+                id, "Xóa mã giảm giá ID: " + id, null, null, request);
             return ResponseEntity.ok(Map.of("message", "Xóa mã giảm giá thành công"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -120,5 +134,10 @@ public class AdminCouponApiController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

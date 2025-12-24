@@ -2,9 +2,14 @@ package com.badmintonshop.controller.admin;
 
 import com.badmintonshop.dto.product.CategoryDTO;
 import com.badmintonshop.dto.product.CategoryTreeDTO;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
 import com.badmintonshop.entity.enums.CategoryStatus;
 import com.badmintonshop.entity.enums.CategoryType;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.CategoryService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +36,8 @@ import java.util.Map;
 public class AdminCategoryController {
 
     private final CategoryService categoryService;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     /**
      * Get all categories with pagination
@@ -79,9 +87,11 @@ public class AdminCategoryController {
      */
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.create')")
-    public ResponseEntity<?> createCategory(@Valid @RequestBody CategoryDTO dto) {
+    public ResponseEntity<?> createCategory(@Valid @RequestBody CategoryDTO dto, HttpServletRequest request) {
         try {
             CategoryDTO created = categoryService.createCategory(dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.CREATE, "Category", 
+                created.getCategoryId(), "Tạo danh mục: " + created.getName(), null, created, request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -94,9 +104,11 @@ public class AdminCategoryController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.create')")
-    public ResponseEntity<?> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryDTO dto) {
+    public ResponseEntity<?> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryDTO dto, HttpServletRequest request) {
         try {
             CategoryDTO updated = categoryService.updateCategory(id, dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Category", 
+                id, "Cập nhật danh mục: " + updated.getName(), null, updated, request);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -109,12 +121,19 @@ public class AdminCategoryController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.delete')")
-    public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
+    public ResponseEntity<?> deleteCategory(@PathVariable Long id, HttpServletRequest request) {
         try {
             categoryService.deleteCategory(id);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.DELETE, "Category", 
+                id, "Xóa danh mục ID: " + id, null, null, request);
             return ResponseEntity.ok(Map.of("message", "Xóa danh mục thành công"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

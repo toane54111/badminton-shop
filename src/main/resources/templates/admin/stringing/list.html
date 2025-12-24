@@ -11,6 +11,9 @@
     <div layout:fragment="content">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 text-gray-800">Quản Lý Đơn Đan Vợt</h1>
+            <a th:if="${isAdmin}" href="/admin/stringing/dashboard" class="btn btn-outline-primary">
+                <i class="fas fa-chart-bar me-1"></i>Xem workload
+            </a>
         </div>
 
         <!-- Tabs Navigation - CHỈ ADMIN thấy 2 tabs -->

@@ -1,7 +1,12 @@
 package com.badmintonshop.controller.admin;
 
 import com.badmintonshop.dto.inventory.SupplierDTO;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.SupplierService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +33,8 @@ import java.util.Map;
 public class AdminSupplierController {
 
     private final SupplierService supplierService;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     // ==================== SUPPLIER CRUD ====================
 
@@ -76,9 +84,11 @@ public class AdminSupplierController {
      */
     @PostMapping("/suppliers")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import')")
-    public ResponseEntity<?> createSupplier(@Valid @RequestBody SupplierDTO dto) {
+    public ResponseEntity<?> createSupplier(@Valid @RequestBody SupplierDTO dto, HttpServletRequest request) {
         try {
             SupplierDTO created = supplierService.createSupplier(dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.CREATE, "Supplier", 
+                created.getSupplierId(), "Tạo nhà cung cấp: " + created.getName(), null, created, request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -91,9 +101,11 @@ public class AdminSupplierController {
      */
     @PutMapping("/suppliers/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import')")
-    public ResponseEntity<?> updateSupplier(@PathVariable Long id, @Valid @RequestBody SupplierDTO dto) {
+    public ResponseEntity<?> updateSupplier(@PathVariable Long id, @Valid @RequestBody SupplierDTO dto, HttpServletRequest request) {
         try {
             SupplierDTO updated = supplierService.updateSupplier(id, dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Supplier", 
+                id, "Cập nhật nhà cung cấp: " + updated.getName(), null, updated, request);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -106,9 +118,11 @@ public class AdminSupplierController {
      */
     @DeleteMapping("/suppliers/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('inventory.import')")
-    public ResponseEntity<?> deleteSupplier(@PathVariable Long id) {
+    public ResponseEntity<?> deleteSupplier(@PathVariable Long id, HttpServletRequest request) {
         try {
             supplierService.deleteSupplier(id);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.DELETE, "Supplier", 
+                id, "Xóa nhà cung cấp ID: " + id, null, null, request);
             return ResponseEntity.ok(Map.of("message", "Xóa nhà cung cấp thành công"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -159,5 +173,10 @@ public class AdminSupplierController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

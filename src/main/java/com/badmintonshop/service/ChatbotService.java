@@ -2,15 +2,21 @@ package com.badmintonshop.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service để gọi OpenRouter AI API
  * API key được lưu trong application-secrets.properties để bảo mật
+ * Knowledge base được load động từ file và database
  */
 @Service
 @Slf4j
@@ -22,19 +28,45 @@ public class ChatbotService {
     @Value("${openrouter.api.url:https://openrouter.ai/api/v1/chat/completions}")
     private String apiUrl;
 
-    @Value("${openrouter.model:meta-llama/llama-3.2-3b-instruct:free}")
+    @Value("${openrouter.model:alibaba/tongyi-deepresearch-30b-a3b:free}")
     private String model;
 
     private final RestTemplate restTemplate;
-    private String knowledgeBase;
+    
+    // Inject các service để lấy dữ liệu động
+    private final ProductService productService;
+    private final PromotionService promotionService;
+    private final SystemSettingService systemSettingService;
 
-    public ChatbotService() {
+    public ChatbotService(ProductService productService, 
+                          PromotionService promotionService,
+                          SystemSettingService systemSettingService) {
         this.restTemplate = new RestTemplate();
-        this.knowledgeBase = loadKnowledgeBase();
+        this.productService = productService;
+        this.promotionService = promotionService;
+        this.systemSettingService = systemSettingService;
     }
 
-    private String loadKnowledgeBase() {
-        // Default knowledge base - có thể load từ file hoặc database
+    /**
+     * Load knowledge base từ file chatbot-knowledge.md
+     */
+    private String loadKnowledgeFromFile() {
+        try {
+            ClassPathResource resource = new ClassPathResource("static/data/chatbot-knowledge.md");
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
+                return reader.lines().collect(Collectors.joining("\n"));
+            }
+        } catch (Exception e) {
+            log.warn("Could not load chatbot-knowledge.md: {}", e.getMessage());
+            return getDefaultKnowledge();
+        }
+    }
+
+    /**
+     * Default knowledge khi không load được từ file
+     */
+    private String getDefaultKnowledge() {
         return """
                 # Thông tin cửa hàng Badminton Shop
 
@@ -62,8 +94,100 @@ public class ChatbotService {
                 """;
     }
 
-    public void setKnowledgeBase(String knowledgeBase) {
-        this.knowledgeBase = knowledgeBase;
+    /**
+     * Tạo knowledge base động từ dữ liệu hiện tại của website
+     * Được gọi mỗi lần có câu hỏi để đảm bảo dữ liệu mới nhất
+     */
+    private String buildDynamicKnowledge() {
+        StringBuilder knowledge = new StringBuilder();
+        
+        // 1. Load từ file cơ bản
+        String fileKnowledge = loadKnowledgeFromFile();
+        knowledge.append(fileKnowledge);
+        knowledge.append("\n\n");
+        
+        // 2. Thêm thông tin khuyến mãi hiện tại
+        try {
+            var activePromotions = promotionService.getActivePromotions();
+            if (activePromotions != null && !activePromotions.isEmpty()) {
+                knowledge.append("## Khuyến mãi đang diễn ra\n");
+                int count = 0;
+                for (var promo : activePromotions) {
+                    if (count >= 5) break; // Giới hạn 5 khuyến mãi
+                    knowledge.append("- ").append(promo.getName());
+                    if (promo.getDiscountValue() != null) {
+                        knowledge.append(": Giảm ").append(promo.getDiscountValue());
+                        if (promo.getDiscountType() != null && promo.getDiscountType().name().equals("PERCENTAGE")) {
+                            knowledge.append("%");
+                        } else {
+                            knowledge.append("đ");
+                        }
+                    }
+                    knowledge.append("\n");
+                    count++;
+                }
+                knowledge.append("\n");
+            }
+        } catch (Exception e) {
+            log.debug("Could not load promotions for chatbot: {}", e.getMessage());
+        }
+
+        // 3. Thêm thông tin từ System Settings
+        try {
+            String hotline = systemSettingService.getValue("contact_hotline", "1900 1234");
+            String email = systemSettingService.getValue("contact_email", "support@badmintonshop.com");
+            String address = systemSettingService.getValue("contact_address", "");
+            String freeShip = systemSettingService.getValue("free_shipping_threshold", "500000");
+            
+            knowledge.append("## Thông tin liên hệ (cập nhật)\n");
+            knowledge.append("- Hotline: ").append(hotline).append("\n");
+            knowledge.append("- Email: ").append(email).append("\n");
+            if (!address.isEmpty()) {
+                knowledge.append("- Địa chỉ: ").append(address).append("\n");
+            }
+            knowledge.append("- Miễn phí ship cho đơn từ: ").append(freeShip).append("đ\n");
+            knowledge.append("\n");
+        } catch (Exception e) {
+            log.debug("Could not load system settings for chatbot: {}", e.getMessage());
+        }
+
+        // 4. Thêm top sản phẩm bán chạy
+        try {
+            var topProducts = productService.getBestSellers(5);
+            if (topProducts != null && !topProducts.isEmpty()) {
+                knowledge.append("## Sản phẩm bán chạy nhất\n");
+                for (var product : topProducts) {
+                    knowledge.append("- ").append(product.getName());
+                    if (product.getBasePrice() != null) {
+                        knowledge.append(" - Giá: ").append(String.format("%,.0f", product.getBasePrice())).append("đ");
+                    }
+                    knowledge.append("\n");
+                }
+                knowledge.append("\n");
+            }
+        } catch (Exception e) {
+            log.debug("Could not load top products for chatbot: {}", e.getMessage());
+        }
+
+        // 5. Thêm sản phẩm mới
+        try {
+            var newProducts = productService.getNewArrivals(5);
+            if (newProducts != null && !newProducts.isEmpty()) {
+                knowledge.append("## Sản phẩm mới nhất\n");
+                for (var product : newProducts) {
+                    knowledge.append("- ").append(product.getName());
+                    if (product.getBasePrice() != null) {
+                        knowledge.append(" - Giá: ").append(String.format("%,.0f", product.getBasePrice())).append("đ");
+                    }
+                    knowledge.append("\n");
+                }
+                knowledge.append("\n");
+            }
+        } catch (Exception e) {
+            log.debug("Could not load new products for chatbot: {}", e.getMessage());
+        }
+
+        return knowledge.toString();
     }
 
     /**
@@ -75,6 +199,7 @@ public class ChatbotService {
 
     /**
      * Gọi OpenRouter API để lấy response từ AI
+     * Knowledge được load mới mỗi lần gọi để đảm bảo dữ liệu cập nhật
      */
     public String chat(String userMessage) {
         if (!isConfigured()) {
@@ -83,24 +208,30 @@ public class ChatbotService {
         }
 
         try {
-            // Build system prompt
+            // Load knowledge động mỗi lần chat
+            String currentKnowledge = buildDynamicKnowledge();
+            log.info("Loaded knowledge base with {} characters", currentKnowledge.length());
+
+            // Build system prompt với knowledge mới nhất
             String systemPrompt = String.format("""
                     Bạn là trợ lý AI thân thiện của Badminton Shop - cửa hàng cầu lông chính hãng.
 
-                    THÔNG TIN CỬA HÀNG:
+                    THÔNG TIN CỬA HÀNG VÀ WEBSITE (CẬP NHẬT MỚI NHẤT):
                     %s
 
-                    HƯỚNG DẪN:
+                    HƯỚNG DẪN TRẢ LỜI:
                     - Trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp
-                    - Sử dụng emoji phù hợp để tạo sự thân thiện
-                    - Nếu không biết câu trả lời, hướng dẫn liên hệ hotline 1900 1234
-                    - Trả lời ngắn gọn, dễ hiểu (tối đa 150 từ)
-                    """, knowledgeBase);
+                    - Sử dụng emoji phù hợp để tạo sự thân thiện 🏸
+                    - Nếu có khuyến mãi hoặc sản phẩm mới, hãy giới thiệu cho khách
+                    - Nếu không biết câu trả lời, hướng dẫn liên hệ hotline
+                    - Trả lời ngắn gọn, dễ hiểu (tối đa 200 từ)
+                    - Sử dụng thông tin mới nhất từ dữ liệu được cung cấp ở trên
+                    """, currentKnowledge);
 
             // Build request body
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model);
-            requestBody.put("max_tokens", 500);
+            requestBody.put("max_tokens", 800);
             requestBody.put("temperature", 0.7);
 
             List<Map<String, String>> messages = new ArrayList<>();
@@ -117,8 +248,8 @@ public class ChatbotService {
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            log.info("Calling OpenRouter API for message: {}",
-                    userMessage.substring(0, Math.min(50, userMessage.length())));
+            log.info("Calling OpenRouter API (model: {}) for message: {}",
+                    model, userMessage.substring(0, Math.min(50, userMessage.length())));
 
             // Call API
             ResponseEntity<Map> response = restTemplate.exchange(
@@ -166,7 +297,9 @@ public class ChatbotService {
                 Map.entry("bảo hành", "Bảo hành:\n• Vợt: 6-12 tháng\n• Giày: 3 tháng\n• Túi: 6 tháng 🛡️"),
                 Map.entry("liên hệ", "Hotline: 1900 1234\nEmail: support@badmintonshop.com 📞"),
                 Map.entry("xin chào", "Xin chào! 👋 Tôi có thể giúp gì cho bạn?"),
-                Map.entry("hello", "Xin chào! 👋 Tôi là trợ lý AI của Badminton Shop."));
+                Map.entry("hello", "Xin chào! 👋 Tôi là trợ lý AI của Badminton Shop."),
+                Map.entry("khuyến mãi", "Hãy truy cập trang chủ để xem các khuyến mãi mới nhất! 🎁"),
+                Map.entry("vợt", "Chúng tôi có vợt Yonex, Victor, Li-Ning chính hãng. Xem tại mục Sản phẩm! 🏸"));
 
         for (Map.Entry<String, String> entry : responses.entrySet()) {
             if (lowerMessage.contains(entry.getKey())) {

@@ -1,8 +1,13 @@
 package com.badmintonshop.controller.admin;
 
 import com.badmintonshop.dto.product.BrandDTO;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
 import com.badmintonshop.entity.enums.BrandStatus;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.BrandService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -12,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -27,6 +33,8 @@ import java.util.Map;
 public class AdminBrandController {
 
     private final BrandService brandService;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     /**
      * Get all brands with pagination
@@ -66,9 +74,11 @@ public class AdminBrandController {
      */
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.create')")
-    public ResponseEntity<?> createBrand(@Valid @RequestBody BrandDTO dto) {
+    public ResponseEntity<?> createBrand(@Valid @RequestBody BrandDTO dto, HttpServletRequest request) {
         try {
             BrandDTO created = brandService.createBrand(dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.CREATE, "Brand", 
+                created.getBrandId(), "Tạo thương hiệu: " + created.getName(), null, created, request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -81,9 +91,11 @@ public class AdminBrandController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.update')")
-    public ResponseEntity<?> updateBrand(@PathVariable Long id, @Valid @RequestBody BrandDTO dto) {
+    public ResponseEntity<?> updateBrand(@PathVariable Long id, @Valid @RequestBody BrandDTO dto, HttpServletRequest request) {
         try {
             BrandDTO updated = brandService.updateBrand(id, dto);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Brand", 
+                id, "Cập nhật thương hiệu: " + updated.getName(), null, updated, request);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -96,12 +108,19 @@ public class AdminBrandController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.delete')")
-    public ResponseEntity<?> deleteBrand(@PathVariable Long id) {
+    public ResponseEntity<?> deleteBrand(@PathVariable Long id, HttpServletRequest request) {
         try {
             brandService.deleteBrand(id);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.DELETE, "Brand", 
+                id, "Xóa thương hiệu ID: " + id, null, null, request);
             return ResponseEntity.ok(Map.of("message", "Xóa thương hiệu thành công"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

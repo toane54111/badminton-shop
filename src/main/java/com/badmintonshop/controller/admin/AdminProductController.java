@@ -5,11 +5,16 @@ import com.badmintonshop.dto.product.ProductListDTO;
 import com.badmintonshop.dto.product.ProductRequest;
 import com.badmintonshop.dto.product.ProductResponse;
 import com.badmintonshop.dto.product.ProductVariantDTO;
+import com.badmintonshop.entity.Staff;
+import com.badmintonshop.entity.enums.ActivityAction;
 import com.badmintonshop.entity.enums.ProductStatus;
 import com.badmintonshop.entity.enums.ProductType;
+import com.badmintonshop.repository.StaffRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.ProductImageService;
 import com.badmintonshop.service.ProductService;
 import com.badmintonshop.service.ProductVariantService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +24,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,6 +46,8 @@ public class AdminProductController {
     private final ProductService productService;
     private final ProductImageService productImageService;
     private final ProductVariantService productVariantService;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     // ==================== PRODUCT CRUD ====================
 
@@ -92,9 +100,11 @@ public class AdminProductController {
      */
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.create')")
-    public ResponseEntity<?> createProduct(@Valid @RequestBody ProductRequest request) {
+    public ResponseEntity<?> createProduct(@Valid @RequestBody ProductRequest request, HttpServletRequest httpRequest) {
         try {
             ProductResponse created = productService.createProduct(request);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.CREATE, "Product", 
+                created.getProductId(), "Tạo sản phẩm: " + created.getName(), null, created, httpRequest);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -118,9 +128,11 @@ public class AdminProductController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.update')")
-    public ResponseEntity<?> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
+    public ResponseEntity<?> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequest request, HttpServletRequest httpRequest) {
         try {
             ProductResponse updated = productService.updateProduct(id, request);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.UPDATE, "Product", 
+                id, "Cập nhật sản phẩm: " + updated.getName(), null, updated, httpRequest);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -144,9 +156,11 @@ public class AdminProductController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('products.delete')")
-    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id, HttpServletRequest httpRequest) {
         try {
             productService.deleteProduct(id);
+            auditService.logActivity(getCurrentStaff(), ActivityAction.DELETE, "Product", 
+                id, "Xóa sản phẩm ID: " + id, null, null, httpRequest);
             return ResponseEntity.ok(Map.of("message", "Xóa sản phẩm thành công"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -317,5 +331,10 @@ public class AdminProductController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }

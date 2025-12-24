@@ -1,15 +1,21 @@
 package com.badmintonshop.controller.admin;
 
+import com.badmintonshop.entity.Staff;
 import com.badmintonshop.entity.User;
+import com.badmintonshop.entity.enums.ActivityAction;
 import com.badmintonshop.entity.enums.NotificationType;
 import com.badmintonshop.entity.enums.UserStatus;
+import com.badmintonshop.repository.StaffRepository;
 import com.badmintonshop.repository.UserRepository;
+import com.badmintonshop.service.AuditService;
 import com.badmintonshop.service.EmailService;
 import com.badmintonshop.service.NotificationService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +33,8 @@ public class AdminNotificationApiController {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final UserRepository userRepository;
+    private final AuditService auditService;
+    private final StaffRepository staffRepository;
 
     /**
      * Send notification to specific users
@@ -34,7 +42,7 @@ public class AdminNotificationApiController {
      */
     @PostMapping("/send")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('notifications.send')")
-    public ResponseEntity<?> sendNotification(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<?> sendNotification(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
         try {
             // Required fields
             String title = (String) request.get("title");
@@ -105,6 +113,8 @@ public class AdminNotificationApiController {
                 if (sendEmail != null && sendEmail) {
                     responseMsg += " và " + emailCount + " email";
                 }
+                auditService.logActivity(getCurrentStaff(), ActivityAction.CREATE, "Notification", 
+                    null, "Gửi thông báo: " + title + " (đến tất cả users)", null, null, httpRequest);
                 return ResponseEntity.ok(Map.of("message", responseMsg));
 
             } else if (userIds != null && !userIds.isEmpty()) {
@@ -137,6 +147,8 @@ public class AdminNotificationApiController {
                 if (sendEmail != null && sendEmail) {
                     responseMsg += " và " + emailCount + " email";
                 }
+                auditService.logActivity(getCurrentStaff(), ActivityAction.CREATE, "Notification", 
+                    null, "Gửi thông báo: " + title + " (đến " + notificationCount + " users)", null, null, httpRequest);
                 return ResponseEntity.ok(Map.of("message", responseMsg));
 
             } else {
@@ -146,5 +158,10 @@ public class AdminNotificationApiController {
             log.error("Error sending notification: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private Staff getCurrentStaff() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return staffRepository.findByEmail(email).orElse(null);
     }
 }
