@@ -144,6 +144,48 @@ public class CheckoutController {
         return "checkout/success";
     }
 
+    /**
+     * Payment failure page
+     */
+    @GetMapping("/failure")
+    public String showFailure(
+            @RequestParam String orderNumber,
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String reason,
+            Model model) {
+        
+        Long userId = getCurrentUserId();
+        
+        if (userId == null) {
+            return "redirect:/login";
+        }
+
+        model.addAttribute("orderNumber", orderNumber);
+        model.addAttribute("errorCode", code);
+        model.addAttribute("errorReason", reason);
+        
+        // Map VNPay error codes to Vietnamese messages
+        String errorMessage = getVNPayErrorMessage(code);
+        model.addAttribute("errorMessage", errorMessage);
+        
+        return "checkout/failure";
+    }
+
+    private String getVNPayErrorMessage(String code) {
+        if (code == null) return "Thanh toán không thành công";
+        
+        return switch (code) {
+            case "24" -> "Giao dịch đã bị hủy bởi khách hàng";
+            case "11" -> "Đã hết thời gian thanh toán";
+            case "12" -> "Thẻ/Tài khoản bị khóa";
+            case "51" -> "Tài khoản không đủ số dư";
+            case "65" -> "Tài khoản đã vượt hạn mức giao dịch";
+            case "75" -> "Ngân hàng thanh toán đang bảo trì";
+            case "99" -> "Lỗi không xác định từ phía ngân hàng";
+            default -> "Thanh toán không thành công (Mã lỗi: " + code + ")";
+        };
+    }
+
     // ===== HELPER =====
     
     private Long getCurrentUserId() {

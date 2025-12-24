@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title>Thanh toán thất bại - Badminton Shop</title>
+    <style>
+        .failure-container {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .failure-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .failure-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .failure-icon i {
+            font-size: 3rem;
+            color: white;
+        }
+
+        .failure-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .failure-message {
+            color: #ef4444;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .order-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .order-number {
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-retry {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+        }
+
+        .btn-retry:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
+            color: white;
+        }
+
+        .help-text {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <div class="failure-container">
+            <div class="failure-card">
+                <!-- Failure Icon -->
+                <div class="failure-icon">
+                    <i class="fas fa-times"></i>
+                </div>
+
+                <!-- Title -->
+                <h1 class="failure-title">Thanh toán thất bại</h1>
+
+                <!-- Error Message -->
+                <p class="failure-message" th:text="${errorMessage}">Giao dịch đã bị hủy</p>
+
+                <!-- Order Info -->
+                <div class="order-info">
+                    <small class="text-muted">Mã đơn hàng</small>
+                    <div class="order-number" th:text="${orderNumber}">ORD123456</div>
+                </div>
+
+                <!-- Info -->
+                <p class="text-muted mb-4">
+                    Đơn hàng của bạn đã được tạo nhưng chưa được thanh toán.
+                    Bạn có thể thử thanh toán lại hoặc chọn phương thức thanh toán khác.
+                </p>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <a th:href="@{/account/orders}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-2"></i>Xem đơn hàng
+                    </a>
+                    <a th:href="@{/}" class="btn btn-retry">
+                        <i class="fas fa-home me-2"></i>Về trang chủ
+                    </a>
+                </div>
+
+                <!-- Help Text -->
+                <p class="help-text">
+                    Cần hỗ trợ? Liên hệ hotline: <a href="tel:19001234"><strong>1900 1234</strong></a>
+                </p>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

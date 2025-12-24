@@ -154,30 +154,32 @@
                     <div class="row g-4">
                         <th:block th:if="${blogs != null and !blogs.content.isEmpty()}">
                             <div th:each="blog : ${blogs.content}" class="col-md-6">
-                                <div class="card blog-card">
-                                    <img th:src="${blog.featuredImage != null ? blog.featuredImage : '/images/no-image.png'}"
-                                        th:alt="${blog.title}" class="card-img-top">
-                                    <div class="card-body">
-                                        <span class="category-badge" th:text="${blog.category ?: 'Chung'}"></span>
-                                        <h5 class="card-title mt-3">
-                                            <a th:href="@{/blogs/{slug}(slug=${blog.slug})}"
-                                                th:text="${blog.title}"></a>
-                                        </h5>
-                                        <p class="blog-excerpt"
-                                            th:text="${#strings.abbreviate(blog.excerpt ?: '', 100)}"></p>
-                                        <div class="blog-meta">
-                                            <span><i class="fas fa-user me-1"></i><span
-                                                    th:text="${blog.authorName}"></span></span>
-                                            <span class="ms-3"><i class="fas fa-eye me-1"></i><span
-                                                    th:text="${blog.viewCount}"></span></span>
-                                            <span class="ms-3" th:if="${blog.publishedAt}">
-                                                <i class="fas fa-clock me-1"></i>
-                                                <span
-                                                    th:text="${#temporals.format(blog.publishedAt, 'dd/MM/yyyy')}"></span>
+                                <a th:href="@{/blogs/{slug}(slug=${blog.slug})}" class="text-decoration-none">
+                                    <div class="card blog-card">
+                                        <img th:src="${blog.featuredImage != null ? blog.featuredImage : '/images/no-image.png'}"
+                                            th:alt="${blog.title}" class="card-img-top">
+                                        <div class="card-body">
+                                            <span class="category-badge" th:text="${blog.category ?: 'Chung'}"></span>
+                                            <h5 class="card-title mt-3" th:text="${blog.title}"></h5>
+                                            <p class="blog-excerpt"
+                                                th:text="${#strings.abbreviate(blog.excerpt ?: '', 100)}"></p>
+                                            <div class="blog-meta mb-3">
+                                                <span><i class="fas fa-user me-1"></i><span
+                                                        th:text="${blog.authorName}"></span></span>
+                                                <span class="ms-3"><i class="fas fa-eye me-1"></i><span
+                                                        th:text="${blog.viewCount}"></span></span>
+                                                <span class="ms-3" th:if="${blog.publishedAt}">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    <span
+                                                        th:text="${#temporals.format(blog.publishedAt, 'dd/MM/yyyy')}"></span>
+                                                </span>
+                                            </div>
+                                            <span class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-arrow-right me-1"></i>Đọc thêm
                                             </span>
                                         </div>
                                     </div>
-                                </div>
+                                </a>
                             </div>
                         </th:block>
 

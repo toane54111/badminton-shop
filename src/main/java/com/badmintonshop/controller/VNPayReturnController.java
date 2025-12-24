@@ -39,13 +39,10 @@ public class VNPayReturnController {
             
             if ("00".equals(responseCode)) {
                 log.info("VNPay Return: Payment Success for order {}", txnRef);
-                // In production, you might want to call transaction check here 
-                // but usually we rely on IPN for status update. 
-                // For UI, we just show success.
                 return "redirect:/checkout/success?orderNumber=" + txnRef;
             } else {
                 log.warn("VNPay Return: Payment Failed for order {}, code: {}", txnRef, responseCode);
-                return "redirect:/checkout/success?orderNumber=" + txnRef + "&error=payment_failed&code=" + responseCode;
+                return "redirect:/checkout/failure?orderNumber=" + txnRef + "&code=" + responseCode;
             }
 
         } catch (Exception e) {
