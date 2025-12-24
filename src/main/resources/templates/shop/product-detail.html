@@ -294,7 +294,11 @@
                 <!-- Product Gallery -->
                 <div class="col-lg-6 mb-4">
                     <div class="product-gallery">
-                        <img th:src="${product.primaryImageUrl ?: '/images/no-image.png'}" id="mainImage" alt="">
+                        <!-- Main Image: use primaryImageUrl, or first image from list, or fallback -->
+                        <img th:src="${product.primaryImageUrl != null ? product.primaryImageUrl : 
+                                      (product.images != null and !#lists.isEmpty(product.images) ? product.images[0].imageUrl : '/images/no-image.png')}"
+                            id="mainImage" alt="">
+                        <!-- Thumbnails -->
                         <div class="d-flex gap-2 flex-wrap"
                             th:if="${product.images != null and !#lists.isEmpty(product.images)}">
                             <img th:each="img : ${product.images}" th:src="${img.imageUrl}" class="thumbnail"
