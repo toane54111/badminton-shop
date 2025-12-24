@@ -33,6 +33,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     // Count by status
     long countByStatus(OrderStatus status);
+    
+    // Count by multiple statuses
+    long countByStatusIn(List<OrderStatus> statuses);
+    
+    // Find recent orders (for dashboard)
+    List<Order> findTop10ByOrderByCreatedAtDesc();
 
     // Admin: Find all orders with optional status filter
     @Query("SELECT o FROM Order o WHERE (:status IS NULL OR o.status = :status) ORDER BY o.createdAt DESC")

@@ -211,6 +211,12 @@
     </div>
 
     <div class="container mb-5">
+        <!-- Error Message -->
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${error}">Error message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
         <!-- Empty cart check -->
         <div th:if="${cart == null or cart.items.empty}" class="text-center py-5">
             <i class="fas fa-shopping-cart fa-4x text-muted mb-4"></i>

@@ -153,17 +153,19 @@
                         </li>
                         <li>
                             <a class="dropdown-item" th:href="@{/orders}">
-                                <i class="fas fa-shopping-bag me-2"></i>Đơn hàng
+                                <i class="fas fa-shopping-bag me-2 text-primary"></i>Đơn hàng của tôi
                             </a>
                         </li>
-                        <a class="dropdown-item" th:href="@{/wishlist}">
-                            <i class="fas fa-heart me-2"></i>Yêu thích
-                        </a>
+                        <li>
+                            <a class="dropdown-item" th:href="@{/wishlist}">
+                                <i class="fas fa-heart me-2"></i>Yêu thích
+                            </a>
                         </li>
-                        <li><a class="dropdown-item" th:href="@{/orders}">
-                                <i class="fas fa-shopping-bag me-2 text-primary"></i>Đơn hàng của tôi</a></li>
-                        <li><a class="dropdown-item" th:href="@{/account/requests}">
-                                <i class="fas fa-headset me-2 text-warning"></i>Yêu cầu hỗ trợ</a></li>
+                        <li>
+                            <a class="dropdown-item" th:href="@{/account/requests}">
+                                <i class="fas fa-headset me-2 text-warning"></i>Yêu cầu hỗ trợ
+                            </a>
+                        </li>
                         <li>
                             <a class="dropdown-item" th:href="@{/notifications}">
                                 <i class="fas fa-bell me-2"></i>Thông báo

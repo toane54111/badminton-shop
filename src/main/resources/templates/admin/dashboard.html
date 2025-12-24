@@ -31,11 +31,9 @@
                         <i class="fas fa-shopping-cart"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value" th:text="${totalOrders} ?: '0'">156</div>
-                        <div class="stat-label">Đơn hàng</div>
-                        <div class="stat-change up">
-                            <i class="fas fa-arrow-up me-1"></i>12% so với tháng trước
-                        </div>
+                        <div class="stat-value" th:text="${totalOrders} ?: '0'">0</div>
+                        <div class="stat-label">Tổng đơn hàng</div>
+                        <a th:href="@{/admin/orders}" class="stat-link">Xem chi tiết →</a>
                     </div>
                 </div>
             </div>
@@ -49,11 +47,8 @@
                     <div class="stat-info">
                         <div class="stat-value"
                             th:text="${#numbers.formatDecimal(totalRevenue ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'">
-                            25,500,000₫</div>
-                        <div class="stat-label">Doanh thu</div>
-                        <div class="stat-change up">
-                            <i class="fas fa-arrow-up me-1"></i>8% so với tháng trước
-                        </div>
+                            0₫</div>
+                        <div class="stat-label">Doanh thu (đã giao)</div>
                     </div>
                 </div>
             </div>
@@ -65,27 +60,67 @@
                         <i class="fas fa-users"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value" th:text="${totalCustomers} ?: '0'">1,234</div>
+                        <div class="stat-value" th:text="${totalCustomers} ?: '0'">0</div>
                         <div class="stat-label">Khách hàng</div>
-                        <div class="stat-change up">
-                            <i class="fas fa-arrow-up me-1"></i>15% so với tháng trước
-                        </div>
+                        <a th:href="@{/admin/users}" class="stat-link">Xem chi tiết →</a>
                     </div>
                 </div>
             </div>
 
-            <!-- Pending Stringing -->
+            <!-- Pending Orders -->
             <div class="col-xl-3 col-md-6">
                 <div class="stat-card">
                     <div class="stat-icon danger">
-                        <i class="fas fa-tools"></i>
+                        <i class="fas fa-clock"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value" th:text="${pendingStringing} ?: '0'">8</div>
-                        <div class="stat-label">Đan vợt chờ xử lý</div>
-                        <div class="stat-change down">
-                            <i class="fas fa-arrow-down me-1"></i>5% so với tuần trước
-                        </div>
+                        <div class="stat-value" th:text="${pendingOrders} ?: '0'">0</div>
+                        <div class="stat-label">Đơn chờ xử lý</div>
+                        <a th:href="@{/admin/orders(status=PENDING)}" class="stat-link">Xử lý ngay →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second Row Stats -->
+        <div class="row g-4 mb-4">
+            <!-- Processing Orders -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" th:text="${processingOrders} ?: '0'">0</div>
+                        <div class="stat-label">Đang xử lý / Đan vợt</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Low Stock Items -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" th:text="${lowStockItems} ?: '0'">0</div>
+                        <div class="stat-label">Sắp hết hàng</div>
+                        <a th:href="@{/admin/inventory(stockStatus=LOW_STOCK)}" class="stat-link">Kiểm tra →</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Out of Stock Items -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" th:text="${outOfStockItems} ?: '0'">0</div>
+                        <div class="stat-label">Hết hàng</div>
+                        <a th:href="@{/admin/inventory(stockStatus=OUT_OF_STOCK)}" class="stat-link">Xem ngay →</a>
                     </div>
                 </div>
             </div>

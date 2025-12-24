@@ -125,8 +125,9 @@
                                     <th>Sản phẩm</th>
                                     <th>Biến thể</th>
                                     <th>Vị trí kho</th>
-                                    <th class="text-center">Có sẵn</th>
+                                    <th class="text-center">Tổng kho</th>
                                     <th class="text-center">Đã đặt</th>
+                                    <th class="text-center">Có sẵn</th>
                                     <th class="text-center">Đã bán</th>
                                     <th>Trạng thái</th>
                                     <th>Cập nhật lần cuối</th>
@@ -143,10 +144,15 @@
                                     <td th:text="${item.variantName ?: '-'}">-</td>
                                     <td th:text="${item.warehouseLocation ?: 'Mặc định'}">Kho chính</td>
                                     <td class="text-center">
-                                        <span class="badge bg-info" th:text="${item.quantityAvailable}">0</span>
+                                        <span class="badge bg-secondary" th:text="${item.quantityAvailable}">0</span>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-secondary" th:text="${item.quantityReserved}">0</span>
+                                        <span class="badge bg-warning text-dark"
+                                            th:text="${item.quantityReserved}">0</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info"
+                                            th:text="${item.quantityAvailable - (item.quantityReserved ?: 0)}">0</span>
                                     </td>
                                     <td class="text-center">
                                         <span th:text="${item.quantitySold}">0</span>

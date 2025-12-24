@@ -12,6 +12,7 @@ import com.badmintonshop.repository.InventoryRepository;
 import com.badmintonshop.repository.InventoryTransactionRepository;
 import com.badmintonshop.repository.ProductRepository;
 import com.badmintonshop.repository.ProductVariantRepository;
+import com.badmintonshop.repository.StringProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,7 @@ public class InventoryService {
         private final InventoryTransactionRepository transactionRepository;
         private final ProductRepository productRepository;
         private final ProductVariantRepository productVariantRepository;
+        private final StringProductRepository stringProductRepository;
 
         /**
          * Get all inventory with pagination
@@ -441,12 +443,31 @@ public class InventoryService {
                                 } else {
                                         log.warn("Inventory not found for product {} variant {}", productId, variantId);
                                 }
+                                
+                                // Restore string product stock if stringing service was selected
+                                if (orderItem.getStringProduct() != null) {
+                                        restoreStringProductStock(orderItem.getStringProduct().getStringId(), quantity, order.getOrderNumber());
+                                }
                         } catch (Exception e) {
                                 log.error("Failed to restore stock for order item: {}", e.getMessage(), e);
                         }
                 }
 
                 log.info("Completed stock restoration for order {}", order.getOrderNumber());
+        }
+
+        /**
+         * Restore string product stock when order is cancelled
+         */
+        private void restoreStringProductStock(Long stringId, int quantity, String orderNumber) {
+                stringProductRepository.findById(stringId)
+                        .ifPresent(stringProduct -> {
+                                int currentStock = stringProduct.getQuantityInStock() != null ? stringProduct.getQuantityInStock() : 0;
+                                stringProduct.setQuantityInStock(currentStock + quantity);
+                                stringProductRepository.save(stringProduct);
+                                log.info("Restored string product {} stock by {} for order {}, new stock: {}", 
+                                                stringProduct.getName(), quantity, orderNumber, stringProduct.getQuantityInStock());
+                        });
         }
 
         @lombok.Builder

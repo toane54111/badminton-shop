@@ -82,6 +82,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
        long countByStatusAndDeletedAtIsNull(UserStatus status);
 
        /**
+        * Count total customers (all active users in users table are customers)
+        */
+       @Query("SELECT COUNT(u) FROM User u WHERE u.deletedAt IS NULL AND u.status = 'ACTIVE'")
+       long countActiveCustomers();
+
+       /**
         * Find users registered within date range
         */
        @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL " +

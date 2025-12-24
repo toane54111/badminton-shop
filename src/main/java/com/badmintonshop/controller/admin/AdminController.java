@@ -4,9 +4,13 @@ import com.badmintonshop.dto.product.BrandDTO;
 import com.badmintonshop.dto.product.CategoryDTO;
 import com.badmintonshop.dto.product.CategoryTreeDTO;
 import com.badmintonshop.dto.product.ProductListDTO;
+import com.badmintonshop.entity.Order;
 import com.badmintonshop.entity.enums.BrandStatus;
+import com.badmintonshop.entity.enums.OrderStatus;
 import com.badmintonshop.entity.enums.ProductStatus;
 import com.badmintonshop.entity.enums.ProductType;
+import com.badmintonshop.repository.OrderRepository;
+import com.badmintonshop.repository.UserRepository;
 import com.badmintonshop.service.BrandService;
 import com.badmintonshop.service.CategoryService;
 import com.badmintonshop.service.InventoryService;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +47,8 @@ public class AdminController {
     private final CategoryService categoryService;
     private final InventoryService inventoryService;
     private final SupplierService supplierService;
+    private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
 
     /**
      * Admin login page
@@ -58,11 +65,47 @@ public class AdminController {
     public String dashboard(Model model) {
         log.info("Loading admin dashboard");
 
-        // TODO: Add real stats from services
-        model.addAttribute("totalOrders", 0);
-        model.addAttribute("totalRevenue", 0);
-        model.addAttribute("totalCustomers", 0);
-        model.addAttribute("pendingStringing", 0);
+        // Total orders count
+        long totalOrders = orderRepository.count();
+        model.addAttribute("totalOrders", totalOrders);
+        
+        // Total revenue (from delivered orders)
+        BigDecimal totalRevenue = orderRepository.findAll().stream()
+                .filter(o -> o.getStatus() == OrderStatus.DELIVERED)
+                .map(Order::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        model.addAttribute("totalRevenue", totalRevenue);
+        
+        // Total customers
+        long totalCustomers = userRepository.countActiveCustomers();
+        model.addAttribute("totalCustomers", totalCustomers);
+        
+        // Pending orders (PENDING status)
+        long pendingOrders = orderRepository.countByStatus(OrderStatus.PENDING);
+        model.addAttribute("pendingOrders", pendingOrders);
+        
+        // Orders being processed (PROCESSING or STRINGING)
+        long processingOrders = orderRepository.countByStatusIn(List.of(OrderStatus.PROCESSING, OrderStatus.STRINGING));
+        model.addAttribute("processingOrders", processingOrders);
+        
+        // Low stock items
+        var inventoryStats = inventoryService.getInventoryStats();
+        model.addAttribute("lowStockItems", inventoryStats.getLowStockItems());
+        model.addAttribute("outOfStockItems", inventoryStats.getOutOfStockItems());
+        
+        // Recent orders (5 most recent)
+        List<Order> recentOrdersList = orderRepository.findTop10ByOrderByCreatedAtDesc();
+        var recentOrders = recentOrdersList.stream().limit(5).map(order -> {
+            Map<String, Object> orderMap = new HashMap<>();
+            orderMap.put("id", order.getOrderId());
+            orderMap.put("orderNumber", order.getOrderNumber());
+            orderMap.put("customerName", order.getShippingRecipientName());
+            orderMap.put("totalAmount", order.getTotalAmount());
+            orderMap.put("status", order.getStatus());
+            orderMap.put("createdAt", order.getCreatedAt());
+            return orderMap;
+        }).toList();
+        model.addAttribute("recentOrders", recentOrders);
 
         return "admin/dashboard";
     }

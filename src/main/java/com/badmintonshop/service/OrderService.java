@@ -39,6 +39,7 @@ public class OrderService {
     private final CartService cartService;
     private final UserRepository userRepository;
     private final InventoryRepository inventoryRepository;
+    private final StringProductRepository stringProductRepository;
     private final StaffRepository staffRepository;
     private final CouponService couponService;
     private final EmailService emailService;
@@ -81,6 +82,7 @@ public class OrderService {
 
         // 2. Validate & decrease inventory (atomic)
         for (CartItem item : cart.getItems()) {
+            // Decrease product inventory
             boolean success = decreaseInventory(
                     item.getProduct().getProductId(),
                     item.getVariant() != null ? item.getVariant().getVariantId() : null,
@@ -92,6 +94,19 @@ public class OrderService {
                         item.getQuantity(),
                         0 // Will be updated with actual available
                 );
+            }
+            
+            // Decrease string product inventory if stringing service is selected
+            if (item.getStringProduct() != null) {
+                boolean stringSuccess = decreaseStringProductStock(
+                        item.getStringProduct().getStringId(),
+                        item.getQuantity()
+                );
+                if (!stringSuccess) {
+                    throw new BadRequestException(
+                            "Cước đan '" + item.getStringProduct().getName() + "' không đủ số lượng trong kho"
+                    );
+                }
             }
         }
 
@@ -353,11 +368,17 @@ public class OrderService {
         // Update status
         order.updateStatus(newStatus);
         
-        // Auto-mark COD payment as PAID when order is DELIVERED
-        if (newStatus == OrderStatus.DELIVERED && order.getPaymentMethod() == PaymentMethod.COD) {
-            order.setPaymentStatus(PaymentStatus.PAID);
-            order.setPaidAt(LocalDateTime.now());
-            log.info("COD order {} auto-marked as PAID upon delivery", order.getOrderNumber());
+        // Handle DELIVERED status - complete the sale and update inventory
+        if (newStatus == OrderStatus.DELIVERED) {
+            // Auto-mark COD payment as PAID
+            if (order.getPaymentMethod() == PaymentMethod.COD) {
+                order.setPaymentStatus(PaymentStatus.PAID);
+                order.setPaidAt(LocalDateTime.now());
+                log.info("COD order {} auto-marked as PAID upon delivery", order.getOrderNumber());
+            }
+            
+            // Complete inventory sale - move from reserved to sold
+            completeSaleForOrder(order);
         }
         
         orderRepository.save(order);
@@ -461,6 +482,7 @@ public class OrderService {
 
     private void restoreInventory(Order order) {
         for (OrderItem item : order.getItems()) {
+            // Restore product inventory
             if (item.getVariant() != null) {
                 inventoryRepository.findByVariantVariantId(item.getVariant().getVariantId())
                         .ifPresent(inv -> {
@@ -476,8 +498,78 @@ public class OrderService {
                             inventoryRepository.save(inv);
                         });
             }
+            
+            // Restore string product stock if stringing service was selected
+            if (item.getStringProduct() != null) {
+                restoreStringProductStock(item.getStringProduct().getStringId(), item.getQuantity());
+            }
         }
         log.info("Inventory restored for cancelled order {}", order.getOrderNumber());
+    }
+
+    /**
+     * Complete sale for order - move items from reserved to sold
+     * Called when order status changes to DELIVERED
+     */
+    private void completeSaleForOrder(Order order) {
+        for (OrderItem item : order.getItems()) {
+            // Complete sale for product inventory
+            if (item.getVariant() != null) {
+                inventoryRepository.findByVariantVariantId(item.getVariant().getVariantId())
+                        .ifPresent(inv -> {
+                            inv.sell(item.getQuantity());
+                            inventoryRepository.save(inv);
+                            log.info("Completed sale: product {} variant {}, quantity {}", 
+                                    item.getProduct().getProductId(), item.getVariant().getVariantId(), item.getQuantity());
+                        });
+            } else {
+                // Sell from first inventory of product
+                inventoryRepository.findByProductProductId(item.getProduct().getProductId())
+                        .stream().findFirst()
+                        .ifPresent(inv -> {
+                            inv.sell(item.getQuantity());
+                            inventoryRepository.save(inv);
+                            log.info("Completed sale: product {}, quantity {}", 
+                                    item.getProduct().getProductId(), item.getQuantity());
+                        });
+            }
+        }
+        log.info("Completed inventory sale for order {}", order.getOrderNumber());
+    }
+
+    /**
+     * Decrease string product stock when ordering stringing service
+     */
+    private boolean decreaseStringProductStock(Long stringId, int quantity) {
+        return stringProductRepository.findById(stringId)
+                .map(stringProduct -> {
+                    int currentStock = stringProduct.getQuantityInStock() != null ? stringProduct.getQuantityInStock() : 0;
+                    if (currentStock >= quantity) {
+                        stringProduct.setQuantityInStock(currentStock - quantity);
+                        stringProductRepository.save(stringProduct);
+                        log.info("Decreased string product {} stock by {}, new stock: {}", 
+                                stringProduct.getName(), quantity, stringProduct.getQuantityInStock());
+                        return true;
+                    }
+                    log.warn("Insufficient string product {} stock: available={}, requested={}", 
+                            stringProduct.getName(), currentStock, quantity);
+                    return false;
+                })
+                .orElse(false);
+    }
+
+    /**
+     * Restore string product stock when order is cancelled
+     */
+    private void restoreStringProductStock(Long stringId, int quantity) {
+        stringProductRepository.findById(stringId)
+                .ifPresent(stringProduct -> {
+                    int currentStock = stringProduct.getQuantityInStock() != null ? stringProduct.getQuantityInStock() : 0;
+                    stringProduct.setQuantityInStock(currentStock + quantity);
+                    stringProductRepository.save(stringProduct);
+                    log.info("Restored string product {} stock by {}, new stock: {}", 
+                            stringProduct.getName(), quantity, stringProduct.getQuantityInStock());
+                });
     }
 
     private boolean isValidTransition(OrderStatus from, OrderStatus to) {
