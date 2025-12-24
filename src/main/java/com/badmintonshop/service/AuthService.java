@@ -65,24 +65,25 @@ public class AuthService {
         }
 
         // Create new user
+        // Auto-verify email in production since Railway blocks SMTP
         User user = User.builder()
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .phone(request.getPhone())
-                .isEmailVerified(false)
+                .isEmailVerified(true)  // Auto-verify for production
                 .status(UserStatus.ACTIVE)
                 .build();
 
         userRepository.save(user);
         log.info("New user registered: {}", user.getEmail());
 
-        // Create email verification token
-        emailVerificationService.createVerification(user);
+        // Skip email verification on Railway (SMTP blocked)
+        // emailVerificationService.createVerification(user);
 
         return AuthResponse.builder()
                 .success(true)
-                .message("Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.")
+                .message("Đăng ký thành công! Bạn có thể đăng nhập ngay.")
                 .redirectUrl("/login?registered=true")
                 .build();
     }
