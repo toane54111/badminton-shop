@@ -9,9 +9,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #2563eb;
-            --gradient-start: #667eea;
-            --gradient-end: #764ba2;
+            --primary-color: #ff6b35;
+            --primary-dark: #e55a2b;
+            --gradient-start: #ff6b35;
+            --gradient-end: #ff8c42;
         }
 
         body {
@@ -25,7 +26,7 @@
         }
 
         .auth-card {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(10px);
             border-radius: 20px;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
@@ -42,9 +43,7 @@
 
         .auth-logo i {
             font-size: 48px;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--primary-color);
         }
 
         .auth-logo h1 {
@@ -66,7 +65,7 @@
 
         .form-floating input:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+            box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.15);
         }
 
         .form-floating input.is-invalid {
@@ -85,7 +84,8 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 20px rgba(255, 107, 53, 0.3);
+            background: linear-gradient(135deg, var(--primary-dark), var(--gradient-start));
         }
 
         .auth-links {
@@ -125,6 +125,19 @@
         .password-requirements li.valid::before {
             content: '✓ ';
         }
+
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        a {
+            color: var(--primary-color);
+        }
+
+        a:hover {
+            color: var(--primary-dark);
+        }
     </style>
 </head>
 
@@ -133,7 +146,7 @@
     <nav class="navbar navbar-light bg-white shadow-sm fixed-top">
         <div class="container">
             <a class="navbar-brand fw-bold" th:href="@{/}">
-                <i class="fas fa-shuttlecock me-2" style="color: #667eea"></i>Badminton Shop
+                <i class="fas fa-shuttlecock me-2" style="color: #ff6b35"></i>Badminton Shop
             </a>
         </div>
     </nav>
