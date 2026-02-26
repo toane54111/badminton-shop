@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Mẫu Email</title>
+    <style>
+        .template-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .template-card:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .template-key {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .template-status {
+            font-size: 0.75rem;
+        }
+
+        .preview-box {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .modal-body .form-label {
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Mẫu Email</h1>
+                <p class="page-subtitle">Quản lý các email tự động gửi cho khách hàng</p>
+            </div>
+            <!-- Removed data-bs-toggle to use JS control -->
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Thêm mẫu mới
+            </button>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+        </div>
+
+        <!-- Template List -->
+        <div id="templateList" class="row" style="display: none;"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-5" style="display: none;">
+            <i class="fas fa-envelope-open fa-3x text-muted mb-3"></i>
+            <h5>Chưa có mẫu email nào</h5>
+            <p class="text-muted">Bắt đầu bằng cách thêm mẫu email mới</p>
+        </div>
+
+        <!-- Template Modal - MUST be inside content fragment -->
+        <div class="modal fade" id="templateModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Thêm mẫu email</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="templateForm">
+                            <input type="hidden" id="templateId">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Template Key <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="templateKey"
+                                        placeholder="order_confirmation" required>
+                                    <small class="text-muted">Mã định danh (không có dấu, khoảng trắng)</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Tên mẫu <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="templateName"
+                                        placeholder="Xác nhận đơn hàng" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tiêu đề email <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="subject"
+                                    placeholder="Đơn hàng #{{order_number}} đã được xác nhận" required>
+                                <small class="text-muted">Sử dụng {{variable}} để chèn biến động</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nội dung HTML <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="bodyHtml" rows="10"
+                                    placeholder="<h1>Cảm ơn bạn!</h1><p>Đơn hàng {{order_number}} đã được xác nhận...</p>"
+                                    required></textarea>
+                            </div>
+                            <!-- Removed Description Field -->
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                <label class="form-check-label" for="isActive">Kích hoạt</label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTemplate()">
+                            <i class="fas fa-save me-2"></i>Lưu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            let templates = [];
+            let modalInstance = null;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('Email Templates Page Loaded');
+                loadTemplates();
+            });
+
+            function getModal() {
+                if (!modalInstance) {
+                    const el = document.getElementById('templateModal');
+                    if (el && window.bootstrap) {
+                        modalInstance = new bootstrap.Modal(el);
+                    } else if (!window.bootstrap) {
+                        console.error('Bootstrap JS not loaded!');
+                        alert('Lỗi: Bootstrap JS chưa được load. Vui lòng refresh trang.');
+                    }
+                }
+                return modalInstance;
+            }
+
+            async function loadTemplates() {
+                try {
+                    console.log('Fetching templates...');
+                    const response = await fetch('/admin/api/email-templates');
+                    const result = await response.json();
+
+                    if (result.success) {
+                        templates = result.data || [];
+                        console.log('Templates loaded:', templates.length);
+                        renderTemplates();
+                    }
+                } catch (error) {
+                    console.error('Error loading templates:', error);
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }
+
+            function renderTemplates() {
+                const container = document.getElementById('templateList');
+                const emptyState = document.getElementById('emptyState');
+
+                if (templates.length === 0) {
+                    emptyState.style.display = 'block';
+                    container.style.display = 'none';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                container.style.display = 'flex';
+                container.innerHTML = templates.map(t => `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="template-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="template-key">${t.templateKey}</span>
+                                <span class="badge ${t.isActive ? 'bg-success' : 'bg-secondary'} template-status">
+                                    ${t.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+                            <h6 class="mb-2">${t.name || t.templateKey}</h6>
+                            <div class="preview-box mb-3">
+                                <strong>Subject:</strong> ${t.subject}<br>
+                            </div>
+                            <div class="btn-group btn-group-sm w-100">
+                                <button class="btn btn-outline-primary" onclick="editTemplate(${t.templateId})">
+                                    <i class="fas fa-edit"></i> Sửa
+                                </button>
+                                <button class="btn btn-outline-${t.isActive ? 'warning' : 'success'}" 
+                                        onclick="toggleTemplate(${t.templateId})">
+                                    <i class="fas fa-${t.isActive ? 'pause' : 'play'}"></i> 
+                                    ${t.isActive ? 'Tắt' : 'Bật'}
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteTemplate(${t.templateId})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function openCreateModal() {
+                console.log('Opening Create Modal');
+                document.getElementById('modalTitle').textContent = 'Thêm mẫu email';
+                document.getElementById('templateForm').reset();
+                document.getElementById('templateId').value = '';
+                document.getElementById('isActive').checked = true;
+
+                const modal = getModal();
+                if (modal) modal.show();
+            }
+
+            function editTemplate(id) {
+                console.log('Editing template:', id);
+                // Type safe comparison
+                const template = templates.find(t => t.templateId == id);
+                if (!template) {
+                    console.error('Template not found:', id);
+                    return;
+                }
+
+                document.getElementById('modalTitle').textContent = 'Sửa mẫu email';
+                document.getElementById('templateId').value = template.templateId;
+                document.getElementById('templateKey').value = template.templateKey;
+                document.getElementById('templateName').value = template.name || '';
+                document.getElementById('subject').value = template.subject;
+                document.getElementById('bodyHtml').value = template.bodyHtml;
+                document.getElementById('isActive').checked = template.isActive;
+
+                const modal = getModal();
+                if (modal) modal.show();
+            }
+
+            async function saveTemplate() {
+                console.log('Saving template...');
+                const id = document.getElementById('templateId').value;
+                const data = {
+                    templateKey: document.getElementById('templateKey').value,
+                    name: document.getElementById('templateName').value,
+                    subject: document.getElementById('subject').value,
+                    bodyHtml: document.getElementById('bodyHtml').value,
+                    isActive: document.getElementById('isActive').checked
+                };
+
+                console.log('Payload:', data);
+
+                try {
+                    const url = id ? `/admin/api/email-templates/${id}` : '/admin/api/email-templates';
+                    const method = id ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        const modal = getModal();
+                        if (modal) modal.hide();
+
+                        loadTemplates();
+                        alert('Đã lưu thành công!');
+                    } else {
+                        console.error('Save failed:', result);
+                        alert('Lỗi: ' + (result.message || 'Không thể lưu template'));
+                    }
+                } catch (error) {
+                    console.error('Error saving template:', error);
+                    alert('Lỗi kết nối server');
+                }
+            }
+
+            async function toggleTemplate(id) {
+                try {
+                    const response = await fetch(`/admin/api/email-templates/${id}/toggle-active`, {
+                        method: 'PATCH'
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        loadTemplates();
+                    } else {
+                        alert('Lỗi: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error toggling:', error);
+                    alert('Lỗi kết nối server');
+                }
+            }
+
+            async function deleteTemplate(id) {
+                if (!confirm('Bạn có chắc muốn xóa mẫu email này?')) return;
+                try {
+                    const response = await fetch(`/admin/api/email-templates/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        loadTemplates();
+                        alert('Đã xóa thành công!');
+                    }
+                } catch (error) {
+                    console.error('Error deleting:', error);
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>

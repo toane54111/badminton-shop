@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý mã giảm giá</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Quản lý mã giảm giá</h1>
+                <p class="page-subtitle">Danh sách các mã giảm giá trong hệ thống</p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#couponModal"
+                    onclick="resetForm()">
+                    <i class="fas fa-plus me-2"></i>Thêm mã giảm giá
+                </button>
+            </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" id="keyword" name="keyword"
+                            placeholder="Tìm theo mã, tên..." th:value="${param.keyword}">
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="type" name="type">
+                            <option value="">Tất cả loại</option>
+                            <option value="PERCENTAGE"
+                                th:selected="${param.type != null and param.type[0] == 'PERCENTAGE'}">Phần trăm</option>
+                            <option value="FIXED_AMOUNT"
+                                th:selected="${param.type != null and param.type[0] == 'FIXED_AMOUNT'}">Số tiền cố định
+                            </option>
+                            <option value="FREE_SHIPPING"
+                                th:selected="${param.type != null and param.type[0] == 'FREE_SHIPPING'}">Miễn phí vận
+                                chuyển</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="ACTIVE"
+                                th:selected="${param.status != null and param.status[0] == 'ACTIVE'}">Đang hoạt động
+                            </option>
+                            <option value="EXPIRED"
+                                th:selected="${param.status != null and param.status[0] == 'EXPIRED'}">Đã hết hạn
+                            </option>
+                            <option value="NOT_STARTED"
+                                th:selected="${param.status != null and param.status[0] == 'NOT_STARTED'}">Chưa bắt đầu
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search me-1"></i>Tìm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Coupons Table -->
+        <div class="data-table-wrapper">
+            <div class="table-responsive">
+                <table class="table data-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Tên</th>
+                            <th>Loại giảm giá</th>
+                            <th>Giá trị</th>
+                            <th>Thời gian</th>
+                            <th>Đã dùng</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="couponsTable">
+                        <tr th:each="coupon : ${coupons.content}">
+                            <td>
+                                <code class="fw-bold" th:text="${coupon.code}">SUMMER2024</code>
+                            </td>
+                            <td th:text="${coupon.name}">Giảm giá mùa hè</td>
+                            <td>
+                                <span class="badge"
+                                    th:classappend="${coupon.type.name() == 'PERCENTAGE'} ? 'bg-info' : 
+                                                   (${coupon.type.name() == 'FIXED_AMOUNT'} ? 'bg-primary' : 'bg-success')" th:text="${coupon.type.name() == 'PERCENTAGE'} ? 'Phần trăm' : 
+                                             (${coupon.type.name() == 'FIXED_AMOUNT'} ? 'Số tiền' : 'Free Ship')">
+                                    Phần trăm
+                                </span>
+                            </td>
+                            <td th:text="${coupon.typeText}">Giảm 10%</td>
+                            <td>
+                                <div class="small">
+                                    <i class="fas fa-calendar-alt text-muted me-1"></i>
+                                    <span
+                                        th:text="${#temporals.format(coupon.startsAt, 'dd/MM/yyyy')}">01/01/2024</span>
+                                    -
+                                    <span
+                                        th:text="${#temporals.format(coupon.expiresAt, 'dd/MM/yyyy')}">31/12/2024</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span th:text="${coupon.timesUsed}">0</span>
+                                <span th:if="${coupon.usageLimit != null}">
+                                    / <span th:text="${coupon.usageLimit}">100</span>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                    th:classappend="${coupon.statusText == 'Đang hoạt động'} ? 'bg-success' : 
+                                                   (${coupon.statusText == 'Chưa bắt đầu'} ? 'bg-info' : 
+                                                   (${coupon.statusText == 'Đã hết hạn' || coupon.statusText == 'Đã hết lượt'} ? 'bg-warning' : 'bg-secondary'))"
+                                    th:text="${coupon.statusText}">Đang hoạt động</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-warning" title="Sửa"
+                                        th:onclick="'editCoupon(' + ${coupon.couponId} + ')'">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" title="Xóa"
+                                        th:onclick="'deleteCoupon(' + ${coupon.couponId} + ')'">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${coupons.content == null or #lists.isEmpty(coupons.content)}">
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fas fa-ticket-alt fa-3x mb-3 d-block"></i>
+                                Chưa có mã giảm giá nào
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center p-3" th:if="${coupons.totalPages > 1}">
+                <div class="text-muted">
+                    Hiển thị <span th:text="${coupons.number * coupons.size + 1}">1</span> -
+                    <span
+                        th:text="${(coupons.number + 1) * coupons.size > coupons.totalElements ? coupons.totalElements : (coupons.number + 1) * coupons.size}">10</span>
+                    trong <span th:text="${coupons.totalElements}">100</span> mã giảm giá
+                </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item" th:classappend="${coupons.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/coupons(page=${coupons.number - 1})}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item" th:each="i : ${#numbers.sequence(0, coupons.totalPages - 1)}"
+                            th:classappend="${i == coupons.number} ? 'active'">
+                            <a class="page-link" th:href="@{/admin/coupons(page=${i})}" th:text="${i + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${coupons.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/coupons(page=${coupons.number + 1})}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Coupon Modal -->
+        <div class="modal fade" id="couponModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Thêm mã giảm giá</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="couponForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="couponId">
+
+                            <div class="row">
+                                <!-- Left Column -->
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Mã giảm giá <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control text-uppercase" id="code" required
+                                            placeholder="VD: SUMMER2024">
+                                        <small class="text-muted">Mã sẽ được tự động chuyển thành chữ in hoa</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tên mã giảm giá <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="name" required
+                                            placeholder="VD: Giảm giá mùa hè">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Mô tả</label>
+                                        <textarea class="form-control" id="description" rows="2"
+                                            placeholder="Mô tả chi tiết về mã giảm giá"></textarea>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Loại giảm giá <span
+                                                    class="text-danger">*</span></label>
+                                            <select class="form-select" id="couponType" required
+                                                onchange="toggleValueFields()">
+                                                <option value="PERCENTAGE">Phần trăm (%)</option>
+                                                <option value="FIXED_AMOUNT">Số tiền cố định</option>
+                                                <option value="FREE_SHIPPING">Miễn phí vận chuyển</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3" id="valueGroup">
+                                            <label class="form-label">Giá trị <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" id="value" required min="0"
+                                                    step="0.01">
+                                                <span class="input-group-text" id="valueSuffix">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right Column -->
+                                <div class="col-md-6">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Đơn hàng tối thiểu</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" id="minOrderValue" min="0"
+                                                    value="0">
+                                                <span class="input-group-text">₫</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3" id="maxDiscountGroup">
+                                            <label class="form-label">Giảm tối đa</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" id="maxDiscountAmount"
+                                                    min="0">
+                                                <span class="input-group-text">₫</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Số lần sử dụng tối đa</label>
+                                            <input type="number" class="form-control" id="usageLimit" min="1"
+                                                placeholder="Không giới hạn">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Lượt/người dùng</label>
+                                            <input type="number" class="form-control" id="usagePerUser" min="1"
+                                                value="1">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Ngày bắt đầu <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="datetime-local" class="form-control" id="startsAt" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Ngày kết thúc <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="datetime-local" class="form-control" id="expiresAt" required>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Áp dụng cho</label>
+                                        <select class="form-select" id="applicableTo">
+                                            <option value="ALL">Tất cả sản phẩm</option>
+                                            <option value="PRODUCTS">Sản phẩm cụ thể</option>
+                                            <option value="CATEGORIES">Danh mục cụ thể</option>
+                                            <option value="BRANDS">Thương hiệu cụ thể</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                        <label class="form-check-label">Hoạt động</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            const couponModal = new bootstrap.Modal(document.getElementById('couponModal'));
+
+            document.getElementById('couponForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                saveCoupon();
+            });
+
+            function toggleValueFields() {
+                const type = document.getElementById('couponType').value;
+                const valueGroup = document.getElementById('valueGroup');
+                const maxDiscountGroup = document.getElementById('maxDiscountGroup');
+                const valueSuffix = document.getElementById('valueSuffix');
+                const valueInput = document.getElementById('value');
+
+                if (type === 'FREE_SHIPPING') {
+                    valueGroup.style.display = 'none';
+                    maxDiscountGroup.style.display = 'none';
+                    valueInput.removeAttribute('required');
+                } else {
+                    valueGroup.style.display = 'block';
+                    valueInput.setAttribute('required', 'required');
+
+                    if (type === 'PERCENTAGE') {
+                        valueSuffix.textContent = '%';
+                        maxDiscountGroup.style.display = 'block';
+                    } else {
+                        valueSuffix.textContent = '₫';
+                        maxDiscountGroup.style.display = 'none';
+                    }
+                }
+            }
+
+            function resetForm() {
+                document.getElementById('modalTitle').textContent = 'Thêm mã giảm giá';
+                document.getElementById('couponForm').reset();
+                document.getElementById('couponId').value = '';
+                document.getElementById('isActive').checked = true;
+                document.getElementById('couponType').value = 'PERCENTAGE';
+                toggleValueFields();
+
+                // Set default dates
+                const now = new Date();
+                const oneMonthLater = new Date();
+                oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+
+                document.getElementById('startsAt').value = formatDateTimeLocal(now);
+                document.getElementById('expiresAt').value = formatDateTimeLocal(oneMonthLater);
+            }
+
+            function formatDateTimeLocal(date) {
+                return date.toISOString().slice(0, 16);
+            }
+
+            function saveCoupon() {
+                const id = document.getElementById('couponId').value;
+                const type = document.getElementById('couponType').value;
+
+                const data = {
+                    code: document.getElementById('code').value,
+                    name: document.getElementById('name').value,
+                    description: document.getElementById('description').value || null,
+                    type: type,
+                    value: type === 'FREE_SHIPPING' ? 0 : parseFloat(document.getElementById('value').value),
+                    minOrderValue: parseFloat(document.getElementById('minOrderValue').value) || 0,
+                    maxDiscountAmount: type === 'PERCENTAGE' ? (parseFloat(document.getElementById('maxDiscountAmount').value) || null) : null,
+                    applicableTo: document.getElementById('applicableTo').value,
+                    usageLimit: parseInt(document.getElementById('usageLimit').value) || null,
+                    usagePerUser: parseInt(document.getElementById('usagePerUser').value) || 1,
+                    startsAt: document.getElementById('startsAt').value,
+                    expiresAt: document.getElementById('expiresAt').value,
+                    isActive: document.getElementById('isActive').checked
+                };
+
+                if (!data.code || !data.name) {
+                    alert('Vui lòng điền đầy đủ thông tin bắt buộc');
+                    return;
+                }
+
+                const url = id ? '/admin/api/coupons/' + id : '/admin/api/coupons';
+                const method = id ? 'PUT' : 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (response.status === 403) {
+                            throw new Error('Bạn không có quyền thực hiện thao tác này.');
+                        }
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.error || 'Lỗi server: ' + response.status);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (result.error) {
+                            alert('Lỗi: ' + result.error);
+                        } else {
+                            couponModal.hide();
+                            location.reload();
+                        }
+                    })
+                    .catch(error => alert('Có lỗi xảy ra: ' + error.message));
+            }
+
+            function editCoupon(id) {
+                fetch('/admin/api/coupons/' + id)
+                    .then(response => response.json())
+                    .then(coupon => {
+                        document.getElementById('modalTitle').textContent = 'Sửa mã giảm giá';
+                        document.getElementById('couponId').value = coupon.couponId;
+                        document.getElementById('code').value = coupon.code;
+                        document.getElementById('name').value = coupon.name;
+                        document.getElementById('description').value = coupon.description || '';
+                        document.getElementById('couponType').value = coupon.type;
+                        document.getElementById('value').value = coupon.value || '';
+                        document.getElementById('minOrderValue').value = coupon.minOrderValue || 0;
+                        document.getElementById('maxDiscountAmount').value = coupon.maxDiscountAmount || '';
+                        document.getElementById('applicableTo').value = coupon.applicableTo || 'ALL';
+                        document.getElementById('usageLimit').value = coupon.usageLimit || '';
+                        document.getElementById('usagePerUser').value = coupon.usagePerUser || 1;
+                        document.getElementById('startsAt').value = coupon.startsAt ? coupon.startsAt.slice(0, 16) : '';
+                        document.getElementById('expiresAt').value = coupon.expiresAt ? coupon.expiresAt.slice(0, 16) : '';
+                        document.getElementById('isActive').checked = coupon.isActive;
+
+                        toggleValueFields();
+                        couponModal.show();
+                    });
+            }
+
+            function deleteCoupon(id) {
+                if (confirm('Bạn có chắc muốn xóa mã giảm giá này?')) {
+                    fetch('/admin/api/coupons/' + id, { method: 'DELETE' })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.message) {
+                                location.reload();
+                            } else if (result.error) {
+                                alert('Lỗi: ' + result.error);
+                            }
+                        });
+                }
+            }
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', function () {
+                toggleValueFields();
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

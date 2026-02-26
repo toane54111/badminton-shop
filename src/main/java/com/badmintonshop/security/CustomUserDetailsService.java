@@ -36,6 +36,11 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("Tài khoản đang bị tạm khóa");
         }
 
+        // Check email verification
+        if (!Boolean.TRUE.equals(user.getIsEmailVerified())) {
+            throw new EmailNotVerifiedException("Email chưa được xác thực. Vui lòng kiểm tra hộp thư.", email);
+        }
+
         return new CustomUserDetails(user);
     }
 }

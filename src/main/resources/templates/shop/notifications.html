@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title>Thông báo - Badminton Shop</title>
+    <style>
+        .notification-page {
+            min-height: 60vh;
+        }
+
+        .notification-item {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+        .notification-item:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .notification-item.unread {
+            background: #f0f7ff;
+            border-left-color: var(--primary, #667eea);
+        }
+
+        .notification-item .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .notification-item .icon.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .notification-item .icon.promo {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .notification-item .icon.order {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .notification-item .icon.alert {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .notification-item .icon.system {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .notification-item .title {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .notification-item .message {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .notification-item .time {
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-tab:hover,
+        .filter-tab.active {
+            background: var(--primary, #667eea);
+            color: white;
+            border-color: var(--primary, #667eea);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container py-5 notification-page">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1"><i class="fas fa-bell text-primary me-2"></i>Thông báo</h1>
+                    <p class="text-muted mb-0">Quản lý tất cả thông báo của bạn</p>
+                </div>
+                <button class="btn btn-outline-primary" onclick="markAllAsRead()">
+                    <i class="fas fa-check-double me-1"></i>Đánh dấu đã đọc tất cả
+                </button>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-type="">Tất cả</button>
+                <button class="filter-tab" data-type="ORDER_UPDATE">Đơn hàng</button>
+                <button class="filter-tab" data-type="PROMOTION">Khuyến mãi</button>
+                <button class="filter-tab" data-type="PRICE_DROP">Giảm giá</button>
+                <button class="filter-tab" data-type="RESTOCK">Có hàng lại</button>
+                <button class="filter-tab" data-type="SYSTEM">Hệ thống</button>
+            </div>
+
+            <!-- Notifications List -->
+            <div id="notificationsList">
+                <div class="text-center py-5">
+                    <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                    <p class="text-muted mt-2">Đang tải thông báo...</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div id="pagination" class="d-flex justify-content-center mt-4" style="display: none;"></div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            let currentPage = 0;
+            let currentType = '';
+
+            document.addEventListener('DOMContentLoaded', function () {
+                loadNotificationsPage(0, '');
+
+                // Filter tab click handlers
+                document.querySelectorAll('.filter-tab').forEach(tab => {
+                    tab.addEventListener('click', function () {
+                        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        currentType = this.dataset.type;
+                        loadNotificationsPage(0, currentType);
+                    });
+                });
+            });
+
+            async function loadNotificationsPage(page, type) {
+                currentPage = page;
+                const container = document.getElementById('notificationsList');
+
+                try {
+                    let url = `/api/notifications?page=${page}&size=10`;
+                    if (type) {
+                        url += `&type=${type}`;
+                    }
+
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            window.location.href = '/login';
+                            return;
+                        }
+                        throw new Error('Failed to load notifications');
+                    }
+
+                    const data = await response.json();
+                    renderNotificationsPage(data);
+                } catch (error) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <h5>Không thể tải thông báo</h5>
+                            <p>Vui lòng thử lại sau</p>
+                        </div>
+                    `;
+                }
+            }
+
+            function renderNotificationsPage(data) {
+                const container = document.getElementById('notificationsList');
+
+                if (!data.content || data.content.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-bell-slash"></i>
+                            <h5>Không có thông báo</h5>
+                            <p>Bạn chưa có thông báo nào${currentType ? ' trong danh mục này' : ''}</p>
+                        </div>
+                    `;
+                    document.getElementById('pagination').style.display = 'none';
+                    return;
+                }
+
+                container.innerHTML = data.content.map(n => {
+                    const iconClass = getIconClass(n.type);
+                    const timeAgo = formatTimeAgo(n.createdAt);
+
+                    return `
+                        <div class="notification-item ${n.isRead ? '' : 'unread'}" data-id="${n.notificationId}">
+                            <div class="d-flex gap-3">
+                                <div class="icon ${iconClass.bg}">
+                                    <i class="${iconClass.icon}"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="title">${n.title}</div>
+                                        <span class="time">${timeAgo}</span>
+                                    </div>
+                                    <div class="message mt-1">${n.message}</div>
+                                    ${n.link ? `<a href="${n.link}" class="btn btn-sm btn-outline-primary mt-2">Xem chi tiết</a>` : ''}
+                                </div>
+                                ${!n.isRead ? `
+                                    <button class="btn btn-sm btn-link" onclick="markAsRead(${n.notificationId}, this)" title="Đánh dấu đã đọc">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Render pagination
+                renderPagination(data);
+            }
+
+            function getIconClass(type) {
+                switch (type) {
+                    case 'ORDER_UPDATE': return { icon: 'fas fa-shopping-bag', bg: 'order' };
+                    case 'PROMOTION': return { icon: 'fas fa-percent', bg: 'promo' };
+                    case 'PRICE_DROP': return { icon: 'fas fa-arrow-down', bg: 'alert' };
+                    case 'RESTOCK': return { icon: 'fas fa-boxes', bg: 'info' };
+                    case 'SYSTEM': return { icon: 'fas fa-cog', bg: 'system' };
+                    default: return { icon: 'fas fa-bell', bg: 'info' };
+                }
+            }
+
+            function formatTimeAgo(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diff = Math.floor((now - date) / 1000);
+
+                if (diff < 60) return 'Vừa xong';
+                if (diff < 3600) return Math.floor(diff / 60) + ' phút trước';
+                if (diff < 86400) return Math.floor(diff / 3600) + ' giờ trước';
+                if (diff < 604800) return Math.floor(diff / 86400) + ' ngày trước';
+                return date.toLocaleDateString('vi-VN');
+            }
+
+            function renderPagination(data) {
+                const container = document.getElementById('pagination');
+                if (data.totalPages <= 1) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                container.style.display = 'flex';
+                let html = '<nav><ul class="pagination">';
+
+                // Previous
+                html += `<li class="page-item ${data.first ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadNotificationsPage(${data.number - 1}, '${currentType}'); return false;">«</a>
+                </li>`;
+
+                // Page numbers
+                for (let i = 0; i < data.totalPages; i++) {
+                    html += `<li class="page-item ${i === data.number ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadNotificationsPage(${i}, '${currentType}'); return false;">${i + 1}</a>
+                    </li>`;
+                }
+
+                // Next
+                html += `<li class="page-item ${data.last ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadNotificationsPage(${data.number + 1}, '${currentType}'); return false;">»</a>
+                </li>`;
+
+                html += '</ul></nav>';
+                container.innerHTML = html;
+            }
+
+            async function markAsRead(notificationId, button) {
+                try {
+                    const response = await fetch(`/api/notifications/${notificationId}/read`, {
+                        method: 'PUT'
+                    });
+                    if (response.ok) {
+                        const item = button.closest('.notification-item');
+                        item.classList.remove('unread');
+                        button.remove();
+                        updateNotificationCount();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+
+            async function markAllAsRead() {
+                try {
+                    const response = await fetch('/api/notifications/read-all', {
+                        method: 'PUT'
+                    });
+                    if (response.ok) {
+                        document.querySelectorAll('.notification-item.unread').forEach(item => {
+                            item.classList.remove('unread');
+                            const btn = item.querySelector('.btn-link');
+                            if (btn) btn.remove();
+                        });
+                        updateNotificationCount();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+
+            function updateNotificationCount() {
+                fetch('/api/notifications/unread-count')
+                    .then(r => r.json())
+                    .then(data => {
+                        const badge = document.querySelector('.notification-count');
+                        if (badge) {
+                            if (data.count > 0) {
+                                badge.textContent = data.count > 99 ? '99+' : data.count;
+                                badge.style.display = 'inline';
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        }
+                    })
+                    .catch(() => { });
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Pagination Fragment -->
+<nav th:fragment="pagination(page, baseUrl)" aria-label="Page navigation">
+    <ul class="pagination justify-content-center" th:if="${page.totalPages > 1}">
+        <!-- First -->
+        <li class="page-item" th:classappend="${page.first} ? 'disabled'">
+            <a class="page-link" th:href="@{${baseUrl}(page=0, size=${page.size})}">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+        </li>
+
+        <!-- Previous -->
+        <li class="page-item" th:classappend="${page.first} ? 'disabled'">
+            <a class="page-link" th:href="@{${baseUrl}(page=${page.number - 1}, size=${page.size})}">
+                <i class="fas fa-angle-left"></i>
+            </a>
+        </li>
+
+        <!-- Page Numbers -->
+        <th:block th:with="
+            start=${page.number > 2 ? page.number - 2 : 0},
+            end=${page.number + 2 < page.totalPages ? page.number + 2 : page.totalPages - 1}">
+
+            <!-- Show first page if not in range -->
+            <li class="page-item" th:if="${start > 0}">
+                <a class="page-link" th:href="@{${baseUrl}(page=0, size=${page.size})}">1</a>
+            </li>
+            <li class="page-item disabled" th:if="${start > 1}">
+                <span class="page-link">...</span>
+            </li>
+
+            <!-- Page numbers -->
+            <li class="page-item" th:each="i : ${#numbers.sequence(start, end)}"
+                th:classappend="${i == page.number} ? 'active'">
+                <a class="page-link" th:href="@{${baseUrl}(page=${i}, size=${page.size})}" th:text="${i + 1}">1</a>
+            </li>
+
+            <!-- Show last page if not in range -->
+            <li class="page-item disabled" th:if="${end < page.totalPages - 2}">
+                <span class="page-link">...</span>
+            </li>
+            <li class="page-item" th:if="${end < page.totalPages - 1}">
+                <a class="page-link" th:href="@{${baseUrl}(page=${page.totalPages - 1}, size=${page.size})}"
+                    th:text="${page.totalPages}">10</a>
+            </li>
+        </th:block>
+
+        <!-- Next -->
+        <li class="page-item" th:classappend="${page.last} ? 'disabled'">
+            <a class="page-link" th:href="@{${baseUrl}(page=${page.number + 1}, size=${page.size})}">
+                <i class="fas fa-angle-right"></i>
+            </a>
+        </li>
+
+        <!-- Last -->
+        <li class="page-item" th:classappend="${page.last} ? 'disabled'">
+            <a class="page-link" th:href="@{${baseUrl}(page=${page.totalPages - 1}, size=${page.size})}">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+        </li>
+    </ul>
+
+    <!-- Page Info -->
+    <div class="text-center text-muted small mt-2" th:if="${page.totalElements > 0}">
+        Hiển thị <span th:text="${page.numberOfElements}">10</span> /
+        <span th:text="${page.totalElements}">100</span> kết quả
+    </div>
+</nav>
+
+</html>

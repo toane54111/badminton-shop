@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title>Sản phẩm</title>
+    <style>
+        .filter-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .product-image {
+            height: 200px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .product-title {
+            font-weight: 600;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .product-price {
+            color: #e74c3c;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .original-price {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .category-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .category-item:last-child {
+            border-bottom: none;
+        }
+
+        .brand-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background: #f8f9fa;
+            margin: 0.25rem;
+            transition: all 0.3s;
+        }
+
+        .brand-badge:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+
+        /* Banner Carousel Styles */
+        .banner-carousel {
+            margin-bottom: 2rem;
+        }
+
+        .banner-carousel .carousel-item {
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .banner-carousel .carousel-item img {
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+        }
+
+        .banner-carousel .carousel-caption {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 15px 25px;
+            bottom: 15%;
+        }
+
+        .banner-carousel .carousel-caption h3 {
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .banner-carousel .carousel-control-prev,
+        .banner-carousel .carousel-control-next {
+            width: 5%;
+        }
+
+        .banner-carousel .carousel-indicators {
+            margin-bottom: 10px;
+        }
+
+        .banner-carousel .carousel-indicators button {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .btn-banner {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 25px;
+        }
+
+        .btn-banner:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .banner-carousel .carousel-item {
+                height: 200px;
+            }
+
+            .banner-carousel .carousel-caption {
+                padding: 8px 12px;
+                bottom: 10%;
+            }
+
+            .banner-carousel .carousel-caption h3 {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <!-- Banner Carousel (if banners exist) -->
+        <th:block th:if="${banners != null and !banners.isEmpty()}">
+            <div id="bannerCarousel" class="carousel slide banner-carousel" data-bs-ride="carousel"
+                data-bs-interval="4000">
+                <!-- Indicators -->
+                <div class="carousel-indicators">
+                    <th:block th:each="banner, iter : ${banners}">
+                        <button type="button" data-bs-target="#bannerCarousel" th:data-bs-slide-to="${iter.index}"
+                            th:class="${iter.index == 0 ? 'active' : ''}"
+                            th:attr="aria-current=${iter.index == 0 ? 'true' : 'false'}">
+                        </button>
+                    </th:block>
+                </div>
+
+                <!-- Slides -->
+                <div class="carousel-inner">
+                    <th:block th:each="banner, iter : ${banners}">
+                        <div th:class="'carousel-item' + (${iter.index == 0} ? ' active' : '')">
+                            <!-- Image Banner -->
+                            <th:block th:if="${banner.imageUrl != null}">
+                                <picture>
+                                    <source media="(max-width: 768px)"
+                                        th:srcset="${banner.mobileImageUrl != null ? banner.mobileImageUrl : banner.imageUrl}">
+                                    <img th:src="${banner.imageUrl}" th:alt="${banner.title}" class="d-block w-100">
+                                </picture>
+                            </th:block>
+                            <!-- Text-only Banner (no image) -->
+                            <th:block th:if="${banner.imageUrl == null}">
+                                <div class="d-flex align-items-center justify-content-center h-100">
+                                    <div class="text-center text-white">
+                                        <h2 class="display-4 fw-bold mb-3" th:text="${banner.title}">Banner Title</h2>
+                                        <th:block th:if="${banner.linkUrl != null}">
+                                            <p class="lead">Xem chi tiết</p>
+                                        </th:block>
+                                    </div>
+                                </div>
+                            </th:block>
+
+                            <!-- Caption with button only (for image banners with link) -->
+                            <div th:if="${banner.imageUrl != null and banner.linkUrl != null}"
+                                class="carousel-caption d-none d-md-block">
+                                <a th:href="${banner.linkUrl}"
+                                    th:target="${banner.linkTarget != null and banner.linkTarget.name() == '_BLANK' ? '_blank' : '_self'}"
+                                    class="btn btn-banner">
+                                    <i class="fas fa-arrow-right me-1"></i>Xem ngay
+                                </a>
+                            </div>
+                            <!-- Link wrapper for text-only banner -->
+                            <a th:if="${banner.imageUrl == null and banner.linkUrl != null}" th:href="${banner.linkUrl}"
+                                th:target="${banner.linkTarget != null and banner.linkTarget.name() == '_BLANK' ? '_blank' : '_self'}"
+                                class="stretched-link"></a>
+                        </div>
+                    </th:block>
+                </div>
+
+                <!-- Controls -->
+                <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel"
+                    data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#bannerCarousel"
+                    data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+        </th:block>
+
+        <!-- Fallback Page Header (when no banners) -->
+        <th:block th:if="${banners == null or banners.isEmpty()}">
+            <div class="page-header">
+                <div class="container">
+                    <h1>Sản phẩm</h1>
+                    <p class="mb-0">Khám phá bộ sưu tập cầu lông chất lượng cao</p>
+                </div>
+            </div>
+        </th:block>
+
+        <div class="container pb-5">
+            <div class="row">
+                <!-- Filters Sidebar -->
+                <div class="col-lg-3">
+                    <form id="filterForm" th:action="@{/products}" method="get">
+                        <!-- Search -->
+                        <div class="filter-card">
+                            <h6 class="mb-3"><i class="fas fa-search me-2"></i>Tìm kiếm</h6>
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="keyword" th:value="${keyword}"
+                                    placeholder="Tên sản phẩm...">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Categories -->
+                        <div class="filter-card">
+                            <h6 class="mb-3"><i class="fas fa-folder me-2"></i>Danh mục</h6>
+                            <select class="form-select" name="categoryId" onchange="this.form.submit()">
+                                <option value="">Tất cả danh mục</option>
+                                <th:block th:each="cat : ${categories}">
+                                    <option th:value="${cat.categoryId}" th:text="${cat.name}"
+                                        th:selected="${cat.categoryId == categoryId}"></option>
+                                    <!-- Show child categories (subcategories) -->
+                                    <th:block th:if="${cat.children != null and !#lists.isEmpty(cat.children)}">
+                                        <option th:each="sub : ${cat.children}" th:value="${sub.categoryId}"
+                                            th:text="'— ' + ${sub.name}" th:selected="${sub.categoryId == categoryId}">
+                                        </option>
+                                    </th:block>
+                                </th:block>
+                            </select>
+                        </div>
+
+                        <!-- Brands -->
+                        <div class="filter-card">
+                            <h6 class="mb-3"><i class="fas fa-tags me-2"></i>Thương hiệu</h6>
+                            <select class="form-select" name="brandId" onchange="this.form.submit()">
+                                <option value="">Tất cả thương hiệu</option>
+                                <option th:each="brand : ${brands}" th:value="${brand.brandId}" th:text="${brand.name}"
+                                    th:selected="${brand.brandId == brandId}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Sort -->
+                        <div class="filter-card">
+                            <h6 class="mb-3"><i class="fas fa-sort me-2"></i>Sắp xếp</h6>
+                            <select class="form-select" name="sortBy" onchange="this.form.submit()">
+                                <option value="createdAt" th:selected="${sortBy == 'createdAt'}">Mới nhất</option>
+                                <option value="basePrice" th:selected="${sortBy == 'basePrice'}">Giá</option>
+                                <option value="name" th:selected="${sortBy == 'name'}">Tên A-Z</option>
+                                <option value="viewCount" th:selected="${sortBy == 'viewCount'}">Xem nhiều</option>
+                            </select>
+                        </div>
+
+                        <a th:href="@{/products}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-redo me-1"></i>Xóa bộ lọc
+                        </a>
+                    </form>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="col-lg-9">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="text-muted"
+                            th:text="'Hiển thị ' + ${products.numberOfElements} + ' / ' + ${products.totalElements} + ' sản phẩm'"></span>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-4" th:each="p : ${products.content}">
+                            <a th:href="@{/products/{slug}(slug=${p.slug})}" class="text-decoration-none">
+                                <div class="product-card">
+                                    <img th:src="${p.primaryImageUrl ?: '/images/no-image.png'}" th:alt="${p.name}"
+                                        class="product-image">
+                                    <div class="p-3">
+                                        <div class="product-title" th:text="${p.name}">Sản phẩm</div>
+                                        <small class="text-muted" th:text="${p.brandName}">Thương hiệu</small>
+                                        <div class="mt-2">
+                                            <!-- With promotion -->
+                                            <th:block th:if="${p.hasActivePromotion}">
+                                                <span class="product-price"
+                                                    th:text="${#numbers.formatDecimal(p.promotionPrice, 0, 'COMMA', 0, 'POINT')} + '₫'">90,000₫</span>
+                                                <span class="original-price ms-2"
+                                                    th:text="${#numbers.formatDecimal(p.basePrice, 0, 'COMMA', 0, 'POINT')} + '₫'">100,000₫</span>
+                                                <span class="badge bg-danger ms-1"
+                                                    th:text="${p.promotionName}">-10%</span>
+                                            </th:block>
+                                            <!-- Without promotion -->
+                                            <th:block th:unless="${p.hasActivePromotion}">
+                                                <span class="product-price"
+                                                    th:text="${#numbers.formatDecimal(p.basePrice, 0, 'COMMA', 0, 'POINT')} + '₫'">1,000,000₫</span>
+                                                <span class="original-price ms-2" th:if="${p.compareAtPrice != null}"
+                                                    th:text="${#numbers.formatDecimal(p.compareAtPrice, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                            </th:block>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div class="col-12" th:if="${products.content == null or #lists.isEmpty(products.content)}">
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-box-open fa-3x mb-3"></i>
+                                <h5>Không tìm thấy sản phẩm</h5>
+                                <p>Thử thay đổi bộ lọc để tìm kiếm</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav class="mt-5" th:if="${products.totalPages > 1}">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item" th:classappend="${products.first} ? 'disabled'">
+                                <a class="page-link"
+                                    th:href="@{/products(page=${products.number - 1}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId})}">«</a>
+                            </li>
+                            <li class="page-item" th:each="i : ${#numbers.sequence(0, products.totalPages - 1)}"
+                                th:classappend="${i == products.number} ? 'active'">
+                                <a class="page-link"
+                                    th:href="@{/products(page=${i}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId})}"
+                                    th:text="${i + 1}">1</a>
+                            </li>
+                            <li class="page-item" th:classappend="${products.last} ? 'disabled'">
+                                <a class="page-link"
+                                    th:href="@{/products(page=${products.number + 1}, keyword=${keyword}, categoryId=${categoryId}, brandId=${brandId})}">»</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

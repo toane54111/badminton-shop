@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<!-- Admin Sidebar Fragment -->
+<aside th:fragment="sidebar" class="admin-sidebar" id="adminSidebar">
+    <!-- Sidebar Header -->
+    <div class="sidebar-header">
+        <a th:href="@{/admin/dashboard}" class="sidebar-logo">
+            <i class="fas fa-shuttlecock"></i>
+            <span>Admin Panel</span>
+        </a>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar-nav">
+        <!-- Main - ALL ROLES -->
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <a th:href="@{/admin/dashboard}" class="sidebar-link" data-page="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+
+        <!-- Products - SUPER_ADMIN, SALE (view), WAREHOUSE (view), CONTENT (view) -->
+        <div sec:authorize="hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'WAREHOUSE_STAFF', 'CONTENT_STAFF')"
+            class="nav-section">
+            <div class="nav-section-title">Sản phẩm</div>
+            <a th:href="@{/admin/products}" class="sidebar-link" data-page="products">
+                <i class="fas fa-box"></i>
+                <span>Sản phẩm</span>
+            </a>
+            <!-- Categories & Brands - SUPER_ADMIN only -->
+            <a sec:authorize="hasRole('SUPER_ADMIN')" th:href="@{/admin/categories}" class="sidebar-link"
+                data-page="categories">
+                <i class="fas fa-folder"></i>
+                <span>Danh mục</span>
+            </a>
+            <a sec:authorize="hasRole('SUPER_ADMIN')" th:href="@{/admin/brands}" class="sidebar-link"
+                data-page="brands">
+                <i class="fas fa-tags"></i>
+                <span>Thương hiệu</span>
+            </a>
+        </div>
+
+        <!-- Inventory - SUPER_ADMIN, WAREHOUSE_STAFF -->
+        <div sec:authorize="hasAnyRole('SUPER_ADMIN', 'WAREHOUSE_STAFF')" class="nav-section">
+            <div class="nav-section-title">Kho hàng</div>
+            <a th:href="@{/admin/inventory}" class="sidebar-link" data-page="inventory">
+                <i class="fas fa-warehouse"></i>
+                <span>Tồn kho</span>
+            </a>
+            <a th:href="@{/admin/suppliers}" class="sidebar-link" data-page="suppliers">
+                <i class="fas fa-truck"></i>
+                <span>Nhà cung cấp</span>
+            </a>
+        </div>
+
+        <!-- Orders - SUPER_ADMIN, SALE_STAFF, WAREHOUSE_STAFF (view) -->
+        <div sec:authorize="hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'WAREHOUSE_STAFF')" class="nav-section">
+            <div class="nav-section-title">Đơn hàng</div>
+            <a th:href="@{/admin/orders}" class="sidebar-link" data-page="orders">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Đơn hàng</span>
+            </a>
+        </div>
+
+        <!-- Stringing - SUPER_ADMIN, SALE_STAFF (assign), STRINGING_STAFF (do work) -->
+        <div sec:authorize="hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'STRINGING_STAFF')" class="nav-section">
+            <div class="nav-section-title">Đan vợt</div>
+            <a th:href="@{/admin/stringing}" class="sidebar-link" data-page="stringing">
+                <i class="fas fa-tools"></i>
+                <span>Hàng đợi đan vợt</span>
+            </a>
+        </div>
+
+        <!-- Exchange & Warranty - SUPER_ADMIN, SALE_STAFF -->
+        <div sec:authorize="hasAnyRole('SUPER_ADMIN', 'SALE_STAFF')" class="nav-section">
+            <div class="nav-section-title">Hậu mãi</div>
+            <a th:href="@{/admin/exchanges}" class="sidebar-link" data-page="exchanges">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Đổi trả hàng</span>
+            </a>
+            <a th:href="@{/admin/warranties}" class="sidebar-link" data-page="warranties">
+                <i class="fas fa-shield-alt"></i>
+                <span>Bảo hành</span>
+            </a>
+        </div>
+
+        <!-- Customers & Reviews - SUPER_ADMIN, SALE_STAFF -->
+        <div sec:authorize="hasAnyRole('SUPER_ADMIN', 'SALE_STAFF')" class="nav-section">
+            <div class="nav-section-title">Khách hàng</div>
+            <a th:href="@{/admin/customers}" class="sidebar-link" data-page="customers">
+                <i class="fas fa-users"></i>
+                <span>Khách hàng</span>
+            </a>
+            <a th:href="@{/admin/reviews}" class="sidebar-link" data-page="reviews">
+                <i class="fas fa-star"></i>
+                <span>Đánh giá</span>
+            </a>
+        </div>
+
+        <!-- Content & Marketing - SUPER_ADMIN, CONTENT_STAFF -->
+        <div sec:authorize="hasAnyRole('SUPER_ADMIN', 'CONTENT_STAFF')" class="nav-section">
+            <div class="nav-section-title">Nội dung</div>
+            <a th:href="@{/admin/blogs}" class="sidebar-link" data-page="blogs">
+                <i class="fas fa-newspaper"></i>
+                <span>Blog</span>
+            </a>
+            <a th:href="@{/admin/banners}" class="sidebar-link" data-page="banners">
+                <i class="fas fa-images"></i>
+                <span>Banner</span>
+            </a>
+            <a th:href="@{/admin/faq}" class="sidebar-link" data-page="faq">
+                <i class="fas fa-question-circle"></i>
+                <span>FAQ</span>
+            </a>
+            <a th:href="@{/admin/coupons}" class="sidebar-link" data-page="coupons">
+                <i class="fas fa-ticket-alt"></i>
+                <span>Mã giảm giá</span>
+            </a>
+            <a th:href="@{/admin/promotions}" class="sidebar-link" data-page="promotions">
+                <i class="fas fa-fire"></i>
+                <span>Khuyến mãi</span>
+            </a>
+        </div>
+
+        <!-- Notifications - SUPER_ADMIN, SALE_STAFF, CONTENT_STAFF -->
+        <div sec:authorize="hasAnyRole('SUPER_ADMIN', 'SALE_STAFF', 'CONTENT_STAFF')" class="nav-section">
+            <div class="nav-section-title">Thông báo</div>
+            <a th:href="@{/admin/notifications/send}" class="sidebar-link" data-page="notifications">
+                <i class="fas fa-bell"></i>
+                <span>Gửi thông báo</span>
+            </a>
+        </div>
+
+        <!-- System Settings - SUPER_ADMIN only -->
+        <div sec:authorize="hasRole('SUPER_ADMIN')" class="nav-section">
+            <div class="nav-section-title">Hệ thống</div>
+            <a th:href="@{/admin/settings}" class="sidebar-link" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>Cài đặt</span>
+            </a>
+            <a th:href="@{/admin/email-templates}" class="sidebar-link" data-page="email-templates">
+                <i class="fas fa-envelope"></i>
+                <span>Email Templates</span>
+            </a>
+            <a th:href="@{/admin/activity-logs}" class="sidebar-link" data-page="activity-logs">
+                <i class="fas fa-history"></i>
+                <span>Activity Logs</span>
+            </a>
+            <a th:href="@{/admin/staff}" class="sidebar-link" data-page="staff">
+                <i class="fas fa-user-shield"></i>
+                <span>Nhân viên</span>
+            </a>
+            <a th:href="@{/admin/trash}" class="sidebar-link" data-page="trash">
+                <i class="fas fa-trash-alt"></i>
+                <span>Thùng rác</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+        <span class="text-white-50 small">v1.0.0</span>
+    </div>
+</aside>
+
+<!-- Sidebar Overlay (mobile) -->
+<div th:fragment="sidebar-overlay" class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- JavaScript to set active state -->
+<script th:fragment="sidebar-script">
+    document.addEventListener('DOMContentLoaded', function () {
+        const path = window.location.pathname;
+        const links = document.querySelectorAll('.sidebar-link');
+
+        links.forEach(function (link) {
+            const page = link.getAttribute('data-page');
+            if (page && path.includes('/admin/' + page)) {
+                link.classList.add('active');
+            }
+        });
+
+        // If no link is active and we're on dashboard, activate dashboard
+        const activeLinks = document.querySelectorAll('.sidebar-link.active');
+        if (activeLinks.length === 0 && path === '/admin/dashboard') {
+            const dashboardLink = document.querySelector('[data-page="dashboard"]');
+            if (dashboardLink) dashboardLink.classList.add('active');
+        }
+    });
+</script>
+
+</html>

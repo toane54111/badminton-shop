@@ -13,9 +13,9 @@ import java.util.List;
  */
 @Entity
 @Table(name = "carts", indexes = {
-    @Index(name = "idx_carts_user", columnList = "user_id"),
-    @Index(name = "idx_carts_session", columnList = "session_id"),
-    @Index(name = "idx_carts_expires", columnList = "expires_at")
+        @Index(name = "idx_carts_user", columnList = "user_id"),
+        @Index(name = "idx_carts_session", columnList = "session_id"),
+        @Index(name = "idx_carts_expires", columnList = "expires_at")
 })
 @Getter
 @Setter
@@ -52,6 +52,13 @@ public class Cart {
     @Builder.Default
     private List<CartItem> items = new ArrayList<>();
 
+    // Coupon applied to cart
+    @Column(name = "coupon_code", length = 50)
+    private String couponCode;
+
+    @Column(name = "coupon_discount", precision = 15, scale = 2)
+    private java.math.BigDecimal couponDiscount;
+
     // Helper methods
     public boolean isGuestCart() {
         return user == null;
@@ -63,6 +70,12 @@ public class Cart {
 
     public int getTotalItems() {
         return items.stream().mapToInt(CartItem::getQuantity).sum();
+    }
+
+    public java.math.BigDecimal getTotalPrice() {
+        return items.stream()
+                .map(CartItem::getSubtotal)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
 
     public void addItem(CartItem item) {
@@ -84,4 +97,3 @@ public class Cart {
         updatedAt = LocalDateTime.now();
     }
 }
-

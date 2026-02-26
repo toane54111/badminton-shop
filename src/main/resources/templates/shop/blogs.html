@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title>Blog - Badminton Shop</title>
+    <style>
+        .blog-card {
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .blog-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .blog-card img {
+            height: 200px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .blog-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .blog-card .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 0.75rem;
+        }
+
+        .blog-card .card-title a {
+            color: #333;
+            text-decoration: none;
+        }
+
+        .blog-card .card-title a:hover {
+            color: var(--primary);
+        }
+
+        .blog-meta {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .blog-excerpt {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .category-badge {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+
+        .sidebar-widget {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-widget h5 {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .popular-post {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .popular-post:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .popular-post img {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .popular-post h6 {
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .popular-post h6 a {
+            color: #333;
+            text-decoration: none;
+        }
+
+        .popular-post h6 a:hover {
+            color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container py-5">
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold"><i class="fas fa-newspaper text-primary me-2"></i>Blog</h1>
+                <p class="text-muted">Tin tức, hướng dẫn và kinh nghiệm chơi cầu lông</p>
+            </div>
+
+            <div class="row">
+                <!-- Main Content -->
+                <div class="col-lg-8">
+                    <!-- Search and Filter -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <form th:action="@{/blogs}" method="get" class="row g-3">
+                                <div class="col-md-6">
+                                    <input type="text" name="keyword" class="form-control"
+                                        placeholder="Tìm kiếm bài viết..." th:value="${keyword}">
+                                </div>
+                                <div class="col-md-4">
+                                    <select name="category" class="form-select">
+                                        <option value="">Tất cả danh mục</option>
+                                        <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}"
+                                            th:selected="${category == cat}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Blog Grid -->
+                    <div class="row g-4">
+                        <th:block th:if="${blogs != null and !blogs.content.isEmpty()}">
+                            <div th:each="blog : ${blogs.content}" class="col-md-6">
+                                <a th:href="@{/blogs/{slug}(slug=${blog.slug})}" class="text-decoration-none">
+                                    <div class="card blog-card">
+                                        <img th:src="${blog.featuredImage != null ? blog.featuredImage : '/images/no-image.png'}"
+                                            th:alt="${blog.title}" class="card-img-top">
+                                        <div class="card-body">
+                                            <span class="category-badge" th:text="${blog.category ?: 'Chung'}"></span>
+                                            <h5 class="card-title mt-3" th:text="${blog.title}"></h5>
+                                            <p class="blog-excerpt"
+                                                th:text="${#strings.abbreviate(blog.excerpt ?: '', 100)}"></p>
+                                            <div class="blog-meta mb-3">
+                                                <span><i class="fas fa-user me-1"></i><span
+                                                        th:text="${blog.authorName}"></span></span>
+                                                <span class="ms-3"><i class="fas fa-eye me-1"></i><span
+                                                        th:text="${blog.viewCount}"></span></span>
+                                                <span class="ms-3" th:if="${blog.publishedAt}">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    <span
+                                                        th:text="${#temporals.format(blog.publishedAt, 'dd/MM/yyyy')}"></span>
+                                                </span>
+                                            </div>
+                                            <span class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-arrow-right me-1"></i>Đọc thêm
+                                            </span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </th:block>
+
+                        <div th:if="${blogs == null or blogs.content.isEmpty()}" class="col-12">
+                            <div class="text-center py-5">
+                                <i class="fas fa-newspaper fa-4x text-muted mb-3"></i>
+                                <h5 class="text-muted">Chưa có bài viết nào</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav th:if="${blogs != null and blogs.totalPages > 1}" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li th:each="i : ${#numbers.sequence(0, blogs.totalPages - 1)}" class="page-item"
+                                th:classappend="${i == blogs.number} ? 'active'">
+                                <a class="page-link"
+                                    th:href="@{/blogs(page=${i}, size=${blogs.size}, keyword=${keyword}, category=${category})}"
+                                    th:text="${i + 1}"></a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="col-lg-4">
+                    <!-- Categories -->
+                    <div class="sidebar-widget">
+                        <h5><i class="fas fa-folder me-2"></i>Danh mục</h5>
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <a th:href="@{/blogs}" class="text-decoration-none">
+                                    <i class="fas fa-angle-right me-2 text-primary"></i>Tất cả
+                                </a>
+                            </li>
+                            <li th:each="cat : ${categories}" class="mb-2">
+                                <a th:href="@{/blogs(category=${cat})}" class="text-decoration-none">
+                                    <i class="fas fa-angle-right me-2 text-primary"></i><span th:text="${cat}"></span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Popular Posts -->
+                    <div class="sidebar-widget" th:if="${popularBlogs != null and !popularBlogs.isEmpty()}">
+                        <h5><i class="fas fa-fire me-2"></i>Bài viết phổ biến</h5>
+                        <div th:each="blog : ${popularBlogs}" class="popular-post">
+                            <img th:src="${blog.featuredImage != null ? blog.featuredImage : '/images/no-image.png'}"
+                                th:alt="${blog.title}">
+                            <div>
+                                <h6><a th:href="@{/blogs/{slug}(slug=${blog.slug})}" th:text="${blog.title}"></a></h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-eye me-1"></i><span th:text="${blog.viewCount}"></span> lượt xem
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

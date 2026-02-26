@@ -4,6 +4,11 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Logs ###
+*.log
+logs/
+badminton-shop.log
+
 ### STS ###
 .apt_generated
 .classpath
@@ -31,3 +36,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Logs ###
+logs/
+*.log
+
+### Sensitive files - NEVER commit these ###
+**/application-local.properties
+**/application-secrets.properties
+**/secrets.properties
+.env
+*.env

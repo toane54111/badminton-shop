@@ -13,12 +13,12 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "banners", indexes = {
-    @Index(name = "idx_banners_position", columnList = "position"),
-    @Index(name = "idx_banners_active", columnList = "is_active"),
-    @Index(name = "idx_banners_order", columnList = "display_order"),
-    @Index(name = "idx_banners_starts", columnList = "starts_at"),
-    @Index(name = "idx_banners_ends", columnList = "ends_at"),
-    @Index(name = "idx_banners_deleted", columnList = "deleted_at")
+        @Index(name = "idx_banners_position", columnList = "position"),
+        @Index(name = "idx_banners_active", columnList = "is_active"),
+        @Index(name = "idx_banners_order", columnList = "display_order"),
+        @Index(name = "idx_banners_starts", columnList = "starts_at"),
+        @Index(name = "idx_banners_ends", columnList = "ends_at"),
+        @Index(name = "idx_banners_deleted", columnList = "deleted_at")
 })
 @Getter
 @Setter
@@ -37,7 +37,8 @@ public class Banner extends BaseEntity {
     private String title;
 
     @Column(name = "image_url", nullable = false, length = 500)
-    private String imageUrl;
+    @Builder.Default
+    private String imageUrl = "/images/no-image.png"; // Default image if not provided
 
     @Column(name = "mobile_image_url", length = 500)
     private String mobileImageUrl;
@@ -48,7 +49,7 @@ public class Banner extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "link_target")
     @Builder.Default
-    private LinkTarget linkTarget = LinkTarget.SELF;
+    private LinkTarget linkTarget = LinkTarget._SELF;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "position", nullable = false)
@@ -76,14 +77,14 @@ public class Banner extends BaseEntity {
     public boolean isDisplayable() {
         LocalDateTime now = LocalDateTime.now();
         boolean withinTime = true;
-        
+
         if (startsAt != null && now.isBefore(startsAt)) {
             withinTime = false;
         }
         if (endsAt != null && now.isAfter(endsAt)) {
             withinTime = false;
         }
-        
+
         return isActive && withinTime;
     }
 }

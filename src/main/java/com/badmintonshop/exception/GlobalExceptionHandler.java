@@ -32,8 +32,11 @@ public class GlobalExceptionHandler {
     private boolean isApiRequest(HttpServletRequest request) {
         String uri = request.getRequestURI();
         String accept = request.getHeader("Accept");
+        String contentType = request.getContentType();
         return uri.startsWith("/api/") || 
-               (accept != null && accept.contains("application/json"));
+               uri.contains("/api/") ||
+               (accept != null && accept.contains("application/json")) ||
+               (contentType != null && contentType.contains("application/json"));
     }
 
     /**
@@ -59,6 +62,57 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public Object handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
         log.warn("Resource not found: {}", ex.getMessage());
+        
+        if (isApiRequest(request)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI()));
+        }
+        
+        ModelAndView mav = new ModelAndView("error/404");
+        mav.addObject("message", ex.getMessage());
+        return mav;
+    }
+
+    /**
+     * Handle Setting Not Found Exception
+     */
+    @ExceptionHandler(SettingNotFoundException.class)
+    public Object handleSettingNotFound(SettingNotFoundException ex, HttpServletRequest request) {
+        log.warn("Setting not found: {}", ex.getMessage());
+        
+        if (isApiRequest(request)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI()));
+        }
+        
+        ModelAndView mav = new ModelAndView("error/404");
+        mav.addObject("message", ex.getMessage());
+        return mav;
+    }
+
+    /**
+     * Handle Email Template Not Found Exception
+     */
+    @ExceptionHandler(EmailTemplateNotFoundException.class)
+    public Object handleEmailTemplateNotFound(EmailTemplateNotFoundException ex, HttpServletRequest request) {
+        log.warn("Email template not found: {}", ex.getMessage());
+        
+        if (isApiRequest(request)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI()));
+        }
+        
+        ModelAndView mav = new ModelAndView("error/404");
+        mav.addObject("message", ex.getMessage());
+        return mav;
+    }
+
+    /**
+     * Handle Staff Not Found Exception
+     */
+    @ExceptionHandler(StaffNotFoundException.class)
+    public Object handleStaffNotFound(StaffNotFoundException ex, HttpServletRequest request) {
+        log.warn("Staff not found: {}", ex.getMessage());
         
         if (isApiRequest(request)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -104,6 +158,7 @@ public class GlobalExceptionHandler {
         if (isApiRequest(request)) {
             Map<String, Object> response = createErrorResponse(
                     HttpStatus.BAD_REQUEST, "Validation failed", request.getRequestURI());
+            response.put("success", false);
             response.put("errors", errors);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
@@ -111,6 +166,25 @@ public class GlobalExceptionHandler {
         ModelAndView mav = new ModelAndView("error/400");
         mav.addObject("message", "Dữ liệu không hợp lệ");
         mav.addObject("errors", errors);
+        return mav;
+    }
+
+    /**
+     * Handle IllegalArgumentException
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Object handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        log.warn("Illegal argument: {}", ex.getMessage());
+        
+        if (isApiRequest(request)) {
+            Map<String, Object> response = createErrorResponse(
+                    HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+            response.put("success", false);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        
+        ModelAndView mav = new ModelAndView("error/400");
+        mav.addObject("message", ex.getMessage());
         return mav;
     }
 

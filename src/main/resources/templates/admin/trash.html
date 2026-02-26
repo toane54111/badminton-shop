@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Thùng rác</title>
+    <style>
+        .trash-tabs {
+            border-bottom: 2px solid #eee;
+            margin-bottom: 1.5rem;
+        }
+
+        .trash-tabs .nav-link {
+            color: #666;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+        }
+
+        .trash-tabs .nav-link.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            background: none;
+        }
+
+        .trash-item {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .trash-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .trash-item-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .trash-item-info img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .trash-item-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .trash-item-meta {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title"><i class="fas fa-trash-alt me-2"></i>Thùng rác</h1>
+                <p class="page-subtitle">Các mục đã xóa có thể khôi phục hoặc xóa vĩnh viễn</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs trash-tabs" id="trashTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="products-tab" data-bs-toggle="tab"
+                    data-bs-target="#products-content" type="button">
+                    <i class="fas fa-box me-1"></i>Sản phẩm <span class="badge bg-secondary ms-1"
+                        id="productCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-content"
+                    type="button">
+                    <i class="fas fa-folder me-1"></i>Danh mục <span class="badge bg-secondary ms-1"
+                        id="categoryCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="brands-tab" data-bs-toggle="tab" data-bs-target="#brands-content"
+                    type="button">
+                    <i class="fas fa-tags me-1"></i>Thương hiệu <span class="badge bg-secondary ms-1"
+                        id="brandCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="banners-tab" data-bs-toggle="tab" data-bs-target="#banners-content"
+                    type="button">
+                    <i class="fas fa-images me-1"></i>Banner <span class="badge bg-secondary ms-1"
+                        id="bannerCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="variants-tab" data-bs-toggle="tab" data-bs-target="#variants-content"
+                    type="button">
+                    <i class="fas fa-cubes me-1"></i>Biến thể <span class="badge bg-secondary ms-1"
+                        id="variantCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="coupons-tab" data-bs-toggle="tab" data-bs-target="#coupons-content"
+                    type="button">
+                    <i class="fas fa-ticket-alt me-1"></i>Mã giảm giá <span class="badge bg-secondary ms-1"
+                        id="couponCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="promotions-tab" data-bs-toggle="tab" data-bs-target="#promotions-content"
+                    type="button">
+                    <i class="fas fa-percentage me-1"></i>Khuyến mãi <span class="badge bg-secondary ms-1"
+                        id="promotionCount">0</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="trashTabContent">
+            <!-- Products Tab -->
+            <div class="tab-pane fade show active" id="products-content" role="tabpanel">
+                <div id="productsList"></div>
+            </div>
+
+            <!-- Categories Tab -->
+            <div class="tab-pane fade" id="categories-content" role="tabpanel">
+                <div id="categoriesList"></div>
+            </div>
+
+            <!-- Brands Tab -->
+            <div class="tab-pane fade" id="brands-content" role="tabpanel">
+                <div id="brandsList"></div>
+            </div>
+
+            <!-- Banners Tab -->
+            <div class="tab-pane fade" id="banners-content" role="tabpanel">
+                <div id="bannersList"></div>
+            </div>
+
+            <!-- Variants Tab -->
+            <div class="tab-pane fade" id="variants-content" role="tabpanel">
+                <div id="variantsList"></div>
+            </div>
+
+            <!-- Coupons Tab -->
+            <div class="tab-pane fade" id="coupons-content" role="tabpanel">
+                <div id="couponsList"></div>
+            </div>
+
+            <!-- Promotions Tab -->
+            <div class="tab-pane fade" id="promotions-content" role="tabpanel">
+                <div id="promotionsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Xác nhận xóa vĩnh viễn</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn xóa vĩnh viễn mục này?</p>
+                    <p class="text-danger fw-bold"><i class="fas fa-warning me-1"></i>Hành động này không thể hoàn tác!
+                    </p>
+                    <p id="confirmItemName" class="text-muted"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xóa vĩnh viễn</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            let confirmModal;
+            let pendingDelete = { type: null, id: null };
+
+            // Helper function to escape HTML special characters
+            function escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                // Check if bootstrap and modal element exist before initializing
+                const modalElement = document.getElementById('confirmModal');
+                if (modalElement && typeof bootstrap !== 'undefined') {
+                    confirmModal = new bootstrap.Modal(modalElement);
+                } else {
+                    console.warn('Bootstrap or confirmModal element not found');
+                }
+
+                // Load data regardless of modal status
+                loadProducts();
+                loadCategories();
+                loadBrands();
+                loadBanners();
+                loadVariants();
+                loadCoupons();
+                loadPromotions();
+
+                const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+                if (confirmDeleteBtn) {
+                    confirmDeleteBtn.addEventListener('click', function () {
+                        if (pendingDelete.type && pendingDelete.id) {
+                            hardDelete(pendingDelete.type, pendingDelete.id);
+                            if (confirmModal) confirmModal.hide();
+                        }
+                    });
+                }
+
+                // Event delegation for restore buttons
+                document.addEventListener('click', function (e) {
+                    console.log('Click event on:', e.target, 'classList:', e.target.classList);
+
+                    const restoreBtn = e.target.closest('.btn-restore');
+                    if (restoreBtn) {
+                        e.preventDefault();
+                        const type = restoreBtn.dataset.type;
+                        const id = restoreBtn.dataset.id;
+                        console.log('Restore button clicked:', type, id);
+                        restore(type, id);
+                        return;
+                    }
+
+                    const deleteBtn = e.target.closest('.btn-hard-delete');
+                    if (deleteBtn) {
+                        e.preventDefault();
+                        const type = deleteBtn.dataset.type;
+                        const id = deleteBtn.dataset.id;
+                        const name = deleteBtn.dataset.name;
+                        console.log('Delete button clicked:', type, id, name);
+                        confirmHardDelete(type, id, name);
+                        return;
+                    }
+                });
+            });
+
+            // ===== PRODUCTS =====
+            async function loadProducts() {
+                console.log('loadProducts() called');
+                try {
+                    const url = '/admin/api/trash/products';
+                    console.log('Fetching:', url);
+                    const response = await fetch(url);
+                    console.log('Trash products response status:', response.status);
+                    if (!response.ok) {
+                        console.error('Response not OK:', response.status, response.statusText);
+                        const text = await response.text();
+                        console.error('Response body:', text);
+                        return;
+                    }
+                    const data = await response.json();
+                    console.log('Trash products data:', data);
+                    document.getElementById('productCount').textContent = data.totalElements || 0;
+                    renderProducts(data.content || []);
+                } catch (error) {
+                    console.error('Error loading products:', error);
+                }
+            }
+
+            function renderProducts(products) {
+                const container = document.getElementById('productsList');
+                if (products.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-box-open"></i>
+                            <h5>Không có sản phẩm nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = products.map(p => {
+                    const safeName = (p.name || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    return `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <img src="${p.primaryImageUrl || '/images/no-image.png'}" alt="">
+                            <div>
+                                <div class="trash-item-name">${escapeHtml(p.name)}</div>
+                                <div class="trash-item-meta">SKU: ${p.sku || 'N/A'} | ${p.categoryName || 'Không có danh mục'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="restore('products', ${p.productId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('products', ${p.productId}, '${safeName}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `}).join('');
+            }
+
+            // ===== CATEGORIES =====
+            async function loadCategories() {
+                try {
+                    const response = await fetch('/admin/api/trash/categories');
+                    const data = await response.json();
+                    document.getElementById('categoryCount').textContent = data.totalElements || 0;
+                    renderCategories(data.content || []);
+                } catch (error) {
+                    console.error('Error loading categories:', error);
+                }
+            }
+
+            function renderCategories(categories) {
+                const container = document.getElementById('categoriesList');
+                if (categories.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <h5>Không có danh mục nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = categories.map(c => {
+                    const safeName = (c.name || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    return `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <img src="${c.imageUrl || '/images/no-image.png'}" alt="">
+                            <div>
+                                <div class="trash-item-name">${escapeHtml(c.name)}</div>
+                                <div class="trash-item-meta">Slug: ${c.slug || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="restore('categories', ${c.categoryId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('categories', ${c.categoryId}, '${safeName}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `}).join('');
+            }
+
+            // ===== BRANDS =====
+            async function loadBrands() {
+                try {
+                    const response = await fetch('/admin/api/trash/brands');
+                    const data = await response.json();
+                    document.getElementById('brandCount').textContent = data.totalElements || 0;
+                    renderBrands(data.content || []);
+                } catch (error) {
+                    console.error('Error loading brands:', error);
+                }
+            }
+
+            function renderBrands(brands) {
+                const container = document.getElementById('brandsList');
+                if (brands.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-tags"></i>
+                            <h5>Không có thương hiệu nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = brands.map(b => {
+                    const safeName = (b.name || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    return `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <img src="${b.logoUrl || '/images/no-image.png'}" alt="">
+                            <div>
+                                <div class="trash-item-name">${escapeHtml(b.name)}</div>
+                                <div class="trash-item-meta">${b.country || 'Không có quốc gia'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="restore('brands', ${b.brandId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('brands', ${b.brandId}, '${safeName}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `}).join('');
+            }
+
+            // ===== BANNERS =====
+            async function loadBanners() {
+                try {
+                    const response = await fetch('/admin/api/trash/banners');
+                    const data = await response.json();
+                    document.getElementById('bannerCount').textContent = data.totalElements || 0;
+                    renderBanners(data.content || []);
+                } catch (error) {
+                    console.error('Error loading banners:', error);
+                }
+            }
+
+            function renderBanners(banners) {
+                const container = document.getElementById('bannersList');
+                if (banners.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-images"></i>
+                            <h5>Không có banner nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = banners.map(b => {
+                    const safeTitle = (b.title || 'Banner').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    return `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <img src="${b.imageUrl || '/images/no-image.png'}" alt="">
+                            <div>
+                                <div class="trash-item-name">${escapeHtml(b.title || 'Không có tiêu đề')}</div>
+                                <div class="trash-item-meta">Vị trí: ${b.position || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="restore('banners', ${b.bannerId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('banners', ${b.bannerId}, '${safeTitle}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `}).join('');
+            }
+
+            // ===== RESTORE =====
+            async function restore(type, id) {
+                try {
+                    const response = await fetch(`/admin/api/trash/${type}/${id}/restore`, {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    if (result.error) {
+                        alert('Lỗi: ' + result.error);
+                    } else {
+                        alert(result.message || 'Đã khôi phục thành công!');
+                        if (type === 'products') loadProducts();
+                        else if (type === 'categories') loadCategories();
+                        else if (type === 'brands') loadBrands();
+                        else if (type === 'banners') loadBanners();
+                        else if (type === 'variants') loadVariants();
+                        else if (type === 'coupons') loadCoupons();
+                        else if (type === 'promotions') loadPromotions();
+                    }
+                } catch (error) {
+                    alert('Có lỗi xảy ra: ' + error.message);
+                }
+            }
+
+            // ===== HARD DELETE =====
+            function confirmHardDelete(type, id, name) {
+                console.log('confirmHardDelete called:', type, id, name);
+
+                // Use native confirm dialog for reliability
+                if (confirm('Bạn có chắc chắn muốn xóa vĩnh viễn: ' + name + '?\n\nHành động này không thể hoàn tác!')) {
+                    console.log('User confirmed delete, calling hardDelete');
+                    hardDelete(type, id);
+                } else {
+                    console.log('User cancelled delete');
+                }
+            }
+
+            async function hardDelete(type, id) {
+                try {
+                    const response = await fetch(`/admin/api/trash/${type}/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const result = await response.json();
+                    if (result.error) {
+                        alert('Lỗi: ' + result.error);
+                    } else {
+                        alert(result.message || 'Đã xóa vĩnh viễn!');
+                        if (type === 'products') loadProducts();
+                        else if (type === 'categories') loadCategories();
+                        else if (type === 'brands') loadBrands();
+                        else if (type === 'banners') loadBanners();
+                        else if (type === 'variants') loadVariants();
+                        else if (type === 'coupons') loadCoupons();
+                        else if (type === 'promotions') loadPromotions();
+                    }
+                } catch (error) {
+                    alert('Có lỗi xảy ra: ' + error.message);
+                }
+            }
+
+            // ===== VARIANTS =====
+            async function loadVariants() {
+                try {
+                    const response = await fetch('/admin/api/trash/variants');
+                    const data = await response.json();
+                    document.getElementById('variantCount').textContent = data.totalElements || 0;
+                    renderVariants(data.content || []);
+                } catch (error) {
+                    console.error('Error loading variants:', error);
+                }
+            }
+
+            function renderVariants(variants) {
+                const container = document.getElementById('variantsList');
+                if (variants.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-cubes"></i>
+                            <h5>Không có biến thể nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = variants.map(v => {
+                    const safeName = (v.variantName || v.sku || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    return `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <img src="${v.imageUrl || '/images/no-image.png'}" alt="">
+                            <div>
+                                <div class="trash-item-name">${escapeHtml(v.variantName || v.sku)}</div>
+                                <div class="trash-item-meta">SKU: ${v.sku || 'N/A'} | Sản phẩm ID: ${v.productId || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="restore('variants', ${v.variantId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('variants', ${v.variantId}, '${safeName}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `}).join('');
+            }
+
+            // ===== COUPONS =====
+            async function loadCoupons() {
+                try {
+                    const response = await fetch('/admin/api/trash/coupons');
+                    const data = await response.json();
+                    document.getElementById('couponCount').textContent = data.totalElements || 0;
+                    renderCoupons(data.content || []);
+                } catch (error) {
+                    console.error('Error loading coupons:', error);
+                }
+            }
+
+            function renderCoupons(coupons) {
+                const container = document.getElementById('couponsList');
+                if (coupons.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-ticket-alt"></i>
+                            <h5>Không có mã giảm giá nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = coupons.map(c => {
+                    const safeName = (c.code || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    return `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <div>
+                                <div class="trash-item-name">${escapeHtml(c.code)}</div>
+                                <div class="trash-item-meta">${escapeHtml(c.name || '')} | ${c.typeText || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="restore('coupons', ${c.couponId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('coupons', ${c.couponId}, '${safeName}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `}).join('');
+            }
+
+            // ===== PROMOTIONS =====
+            async function loadPromotions() {
+                try {
+                    const response = await fetch('/admin/api/trash/promotions');
+                    const data = await response.json();
+                    document.getElementById('promotionCount').textContent = data.totalElements || 0;
+                    renderPromotions(data.content || []);
+                } catch (error) {
+                    console.error('Error loading promotions:', error);
+                }
+            }
+
+            function renderPromotions(promotions) {
+                const container = document.getElementById('promotionsList');
+                if (promotions.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-percentage"></i>
+                            <h5>Không có khuyến mãi nào trong thùng rác</h5>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = promotions.map(p => {
+                    const safeName = (p.name || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    return `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <div>
+                                <div class="trash-item-name">${escapeHtml(p.name)}</div>
+                                <div class="trash-item-meta">${p.typeText || 'N/A'} | ${p.discountText || ''}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="restore('promotions', ${p.promotionId})">
+                                <i class="fas fa-undo me-1"></i>Khôi phục
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmHardDelete('promotions', ${p.promotionId}, '${safeName}')">
+                                <i class="fas fa-trash me-1"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                `}).join('');
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

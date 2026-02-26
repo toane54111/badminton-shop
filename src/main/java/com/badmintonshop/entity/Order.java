@@ -15,13 +15,13 @@ import java.util.List;
  */
 @Entity
 @Table(name = "orders", indexes = {
-    @Index(name = "idx_orders_user", columnList = "user_id"),
-    @Index(name = "idx_orders_status", columnList = "status"),
-    @Index(name = "idx_orders_payment_status", columnList = "payment_status"),
-    @Index(name = "idx_orders_payment_method", columnList = "payment_method"),
-    @Index(name = "idx_orders_created", columnList = "created_at"),
-    @Index(name = "idx_orders_deleted", columnList = "deleted_at"),
-    @Index(name = "idx_orders_user_deleted", columnList = "user_id, deleted_at")
+        @Index(name = "idx_orders_user", columnList = "user_id"),
+        @Index(name = "idx_orders_status", columnList = "status"),
+        @Index(name = "idx_orders_payment_status", columnList = "payment_status"),
+        @Index(name = "idx_orders_payment_method", columnList = "payment_method"),
+        @Index(name = "idx_orders_created", columnList = "created_at"),
+        @Index(name = "idx_orders_deleted", columnList = "deleted_at"),
+        @Index(name = "idx_orders_user_deleted", columnList = "user_id, deleted_at")
 })
 @Getter
 @Setter
@@ -87,6 +87,9 @@ public class Order {
 
     @Column(name = "shipping_phone", nullable = false, length = 20)
     private String shippingPhone;
+
+    @Column(name = "shipping_email", length = 100)
+    private String shippingEmail;
 
     @Column(name = "shipping_address", nullable = false, length = 500)
     private String shippingAddress;

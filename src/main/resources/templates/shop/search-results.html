@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/customer}">
+
+<head>
+    <title th:text="${pageTitle}">Tìm kiếm</title>
+    <style>
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .product-image {
+            height: 200px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .product-price {
+            color: #e74c3c;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <main layout:fragment="content">
+        <div class="page-header">
+            <div class="container">
+                <h1 th:text="${pageTitle}">Kết quả tìm kiếm</h1>
+                <p class="mb-0" th:text="'Tìm thấy ' + ${products.totalElements} + ' sản phẩm'"></p>
+            </div>
+        </div>
+
+        <div class="container pb-5">
+            <!-- Search Box -->
+            <div class="mb-4">
+                <form th:action="@{/products/search}" method="get" class="d-flex">
+                    <input type="text" class="form-control me-2" name="q" th:value="${query}"
+                        placeholder="Tìm kiếm sản phẩm...">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i></button>
+                </form>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-6 col-md-4 col-lg-3" th:each="p : ${products.content}">
+                    <a th:href="@{/products/{slug}(slug=${p.slug})}" class="text-decoration-none">
+                        <div class="product-card">
+                            <img th:src="${p.primaryImageUrl ?: '/images/no-image.png'}" th:alt="${p.name}"
+                                class="product-image">
+                            <div class="p-3">
+                                <div class="fw-medium text-dark" th:text="${p.name}">Sản phẩm</div>
+                                <small class="text-muted" th:text="${p.brandName}">Brand</small>
+                                <div class="product-price mt-1"
+                                    th:text="${#numbers.formatDecimal(p.basePrice, 0, 'COMMA', 0, 'POINT')} + '₫'">
+                                    1,000,000₫</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-12" th:if="${products.content == null or #lists.isEmpty(products.content)}">
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-search fa-3x mb-3"></i>
+                        <h5>Không tìm thấy sản phẩm</h5>
+                        <p>Thử từ khóa khác</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <nav class="mt-5" th:if="${products.totalPages > 1}">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${products.first} ? 'disabled'">
+                        <a class="page-link"
+                            th:href="@{/products/search(q=${query}, page=${products.number - 1})}">«</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, products.totalPages - 1)}"
+                        th:classappend="${i == products.number} ? 'active'">
+                        <a class="page-link" th:href="@{/products/search(q=${query}, page=${i})}"
+                            th:text="${i + 1}">1</a>
+                    </li>
+                    <li class="page-item" th:classappend="${products.last} ? 'disabled'">
+                        <a class="page-link"
+                            th:href="@{/products/search(q=${query}, page=${products.number + 1})}">»</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </main>
+</body>
+
+</html>

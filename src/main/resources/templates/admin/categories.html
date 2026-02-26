@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý danh mục</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Quản lý danh mục</h1>
+                <p class="page-subtitle">Cây danh mục sản phẩm</p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#categoryModal">
+                    <i class="fas fa-plus me-2"></i>Thêm danh mục
+                </button>
+            </div>
+        </div>
+
+        <!-- Categories Table -->
+        <div class="data-table-wrapper">
+            <div class="table-responsive">
+                <table class="table data-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Ảnh</th>
+                            <th>Tên danh mục</th>
+                            <th>Danh mục cha</th>
+                            <th>Loại</th>
+                            <th>Slug</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="cat : ${categories.content}">
+                            <td>
+                                <img th:src="${cat.imageUrl ?: '/images/no-image.png'}" alt="" class="rounded"
+                                    style="width: 50px; height: 50px; object-fit: cover;">
+                            </td>
+                            <td>
+                                <div class="fw-medium" th:text="${cat.name}">Vợt cầu lông</div>
+                                <small class="text-muted" th:if="${cat.icon}">
+                                    <i th:class="${cat.icon}"></i>
+                                </small>
+                            </td>
+                            <td th:text="${cat.parentCategoryId != null} ? ${parentNames[cat.parentCategoryId]} : '-'">-
+                            </td>
+                            <td>
+                                <span class="badge bg-info" th:text="${cat.categoryType}">PRODUCT</span>
+                            </td>
+                            <td><code th:text="${cat.slug}">vot-cau-long</code></td>
+                            <td>
+                                <span class="badge" th:classappend="${cat.isActive} ? 'bg-success' : 'bg-secondary'"
+                                    th:text="${cat.isActive} ? 'Hoạt động' : 'Ẩn'">Hoạt động</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-warning" title="Sửa"
+                                        th:onclick="'editCategory(' + ${cat.categoryId} + ')'">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" title="Xóa"
+                                        th:onclick="'deleteCategory(' + ${cat.categoryId} + ')'">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${categories.content == null or #lists.isEmpty(categories.content)}">
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
+                                Chưa có danh mục nào
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Category Modal -->
+        <div class="modal fade" id="categoryModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Thêm danh mục</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="categoryForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="categoryId">
+                            <div class="mb-3">
+                                <label class="form-label">Tên danh mục <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="categoryName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Slug</label>
+                                <input type="text" class="form-control" id="categorySlug"
+                                    placeholder="Tự động tạo nếu để trống">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Danh mục cha</label>
+                                <select class="form-select" id="parentCategoryId">
+                                    <option value="">Không có (Danh mục gốc)</option>
+                                    <option th:each="cat : ${allCategories}" th:value="${cat.categoryId}"
+                                        th:text="${cat.name}"></option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Loại danh mục</label>
+                                <select class="form-select" id="categoryType">
+                                    <option value="RACKET">Vợt cầu lông</option>
+                                    <option value="SHOES">Giày</option>
+                                    <option value="APPAREL">Áo quần</option>
+                                    <option value="ACCESSORY">Phụ kiện</option>
+                                    <option value="STRING">Dây cước</option>
+                                    <option value="SERVICE">Dịch vụ</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Hình ảnh URL</label>
+                                <input type="url" class="form-control" id="categoryImage" placeholder="https://...">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Icon (Font Awesome)</label>
+                                <input type="text" class="form-control" id="categoryIcon" placeholder="fas fa-racquet">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mô tả</label>
+                                <textarea class="form-control" id="categoryDescription" rows="2"></textarea>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="categoryActive" checked>
+                                <label class="form-check-label">Hoạt động</label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            let categoryModal;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                // Safely initialize Bootstrap modal
+                const modalElement = document.getElementById('categoryModal');
+                if (modalElement && typeof bootstrap !== 'undefined') {
+                    categoryModal = new bootstrap.Modal(modalElement);
+                } else {
+                    console.warn('Bootstrap or categoryModal element not found');
+                }
+
+                // Add form submit listener
+                const categoryForm = document.getElementById('categoryForm');
+                if (categoryForm) {
+                    categoryForm.addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        saveCategory();
+                    });
+                }
+            });
+
+            function saveCategory() {
+                const id = document.getElementById('categoryId').value;
+                const parentId = document.getElementById('parentCategoryId').value;
+                const data = {
+                    name: document.getElementById('categoryName').value,
+                    slug: document.getElementById('categorySlug').value || null,
+                    parentCategoryId: parentId ? parseInt(parentId) : null,
+                    categoryType: document.getElementById('categoryType').value,
+                    imageUrl: document.getElementById('categoryImage').value || null,
+                    icon: document.getElementById('categoryIcon').value || null,
+                    description: document.getElementById('categoryDescription').value || null,
+                    isActive: document.getElementById('categoryActive').checked
+                };
+
+                if (!data.name) {
+                    alert('Vui lòng nhập tên danh mục');
+                    return;
+                }
+
+                const url = id ? '/admin/api/categories/' + id : '/admin/api/categories';
+                const method = id ? 'PUT' : 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (response.status === 403) {
+                            throw new Error('Bạn không có quyền thực hiện thao tác này. Chỉ SUPER_ADMIN mới có quyền.');
+                        }
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                throw new Error('Lỗi server: ' + response.status);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (result.error) {
+                            alert('Lỗi: ' + result.error);
+                        } else {
+                            if (categoryModal) categoryModal.hide();
+                            location.reload();
+                        }
+                    })
+                    .catch(error => alert('Có lỗi xảy ra: ' + error.message));
+            }
+
+            function editCategory(id) {
+                fetch('/admin/api/categories/' + id)
+                    .then(response => response.json())
+                    .then(cat => {
+                        document.getElementById('modalTitle').textContent = 'Sửa danh mục';
+                        document.getElementById('categoryId').value = cat.categoryId;
+                        document.getElementById('categoryName').value = cat.name;
+                        document.getElementById('categorySlug').value = cat.slug || '';
+                        document.getElementById('parentCategoryId').value = cat.parentCategoryId || '';
+                        document.getElementById('categoryType').value = cat.categoryType || 'PRODUCT';
+                        document.getElementById('categoryImage').value = cat.imageUrl || '';
+                        document.getElementById('categoryIcon').value = cat.icon || '';
+                        document.getElementById('categoryDescription').value = cat.description || '';
+                        document.getElementById('categoryActive').checked = cat.isActive;
+                        if (categoryModal) categoryModal.show();
+                    });
+            }
+
+            function deleteCategory(id) {
+                if (confirm('Bạn có chắc muốn xóa danh mục này?')) {
+                    fetch('/admin/api/categories/' + id, { method: 'DELETE' })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.message) {
+                                location.reload();
+                            } else if (result.error) {
+                                alert('Lỗi: ' + result.error);
+                            }
+                        });
+                }
+            }
+
+            document.getElementById('categoryModal').addEventListener('show.bs.modal', function () {
+                if (!document.getElementById('categoryId').value) {
+                    document.getElementById('modalTitle').textContent = 'Thêm danh mục';
+                    document.getElementById('categoryForm').reset();
+                    document.getElementById('categoryActive').checked = true;
+                }
+            });
+
+            document.getElementById('categoryModal').addEventListener('hidden.bs.modal', function () {
+                document.getElementById('categoryId').value = '';
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

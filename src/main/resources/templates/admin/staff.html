@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý Nhân viên</title>
+    <style>
+        .staff-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .staff-card:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .staff-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .role-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .role-SUPER_ADMIN {
+            background: #dc3545;
+            color: white;
+        }
+
+        .role-SALE_STAFF {
+            background: #28a745;
+            color: white;
+        }
+
+        .role-STRINGING_STAFF {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .role-WAREHOUSE_STAFF {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .role-CONTENT_STAFF {
+            background: #6f42c1;
+            color: white;
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+        }
+
+        .permission-tag {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin: 0.1rem;
+        }
+
+        .filter-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Quản lý Nhân viên</h1>
+                <p class="page-subtitle">Quản lý thông tin, quyền và trạng thái nhân viên</p>
+            </div>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Thêm nhân viên
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Tìm theo tên, email..."
+                        onkeyup="debounceSearch()">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="roleFilter" onchange="loadStaff()">
+                        <option value="">Tất cả vai trò</option>
+                        <option value="SALE_STAFF">Nhân viên bán hàng</option>
+                        <option value="STRINGING_STAFF">Thợ đan vợt</option>
+                        <option value="WAREHOUSE_STAFF">Nhân viên kho</option>
+                        <option value="CONTENT_STAFF">Nhân viên nội dung</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="statusFilter" onchange="loadStaff()">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="ACTIVE">Đang làm việc</option>
+                        <option value="INACTIVE">Tạm nghỉ</option>
+                        <option value="RESIGNED">Đã nghỉ việc</option>
+                        <option value="BANNED">Bị cấm</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                        <i class="fas fa-redo me-1"></i>Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+        </div>
+
+        <!-- Staff List -->
+        <div id="staffList" class="row" style="display: none;"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-5" style="display: none;">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h5>Chưa có nhân viên nào</h5>
+            <p class="text-muted">Bắt đầu bằng cách thêm nhân viên mới</p>
+        </div>
+
+        <!-- Pagination -->
+        <nav id="pagination" class="mt-4" style="display: none;">
+            <ul class="pagination justify-content-center"></ul>
+        </nav>
+
+        <!-- Staff Modal -->
+        <div class="modal fade" id="staffModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Thêm nhân viên</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="staffForm">
+                            <input type="hidden" id="staffId">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                                    <input type="email" class="form-control" id="email" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Mật khẩu <span class="text-danger"
+                                            id="passwordRequired">*</span></label>
+                                    <input type="password" class="form-control" id="password"
+                                        placeholder="Để trống nếu không đổi">
+                                    <small class="text-muted">Tối thiểu 6 ký tự</small>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Họ tên <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="fullName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Số điện thoại</label>
+                                    <input type="text" class="form-control" id="phone">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Vai trò <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="role" required onchange="toggleStringingFields()">
+                                        <option value="">Chọn vai trò</option>
+                                        <option value="SALE_STAFF">Nhân viên bán hàng</option>
+                                        <option value="STRINGING_STAFF">Thợ đan vợt</option>
+                                        <option value="WAREHOUSE_STAFF">Nhân viên kho</option>
+                                        <option value="CONTENT_STAFF">Nhân viên nội dung</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3" id="stringingFields" style="display: none;">
+                                    <label class="form-label">Trình độ đan</label>
+                                    <select class="form-select" id="stringingSkillLevel">
+                                        <option value="">Chọn trình độ</option>
+                                        <option value="BEGINNER">Mới vào nghề</option>
+                                        <option value="INTERMEDIATE">Trung bình</option>
+                                        <option value="EXPERT">Chuyên gia</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row" id="capacityField" style="display: none;">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Số vợt đan/ngày</label>
+                                    <input type="number" class="form-control" id="dailyStringingCapacity" min="1">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary" onclick="saveStaff()">
+                            <i class="fas fa-save me-2"></i>Lưu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissions Modal -->
+        <div class="modal fade" id="permissionsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Phân quyền - <span id="permStaffName"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                        <input type="hidden" id="permStaffId">
+
+                        <!-- Quick Select by Role -->
+                        <div class="mb-3 p-2 bg-light rounded">
+                            <label class="form-label fw-bold">Chọn nhanh theo vai trò:</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-success"
+                                    onclick="applyRoleDefaults('SALE_STAFF')">Bán hàng</button>
+                                <button type="button" class="btn btn-sm btn-outline-warning"
+                                    onclick="applyRoleDefaults('WAREHOUSE_STAFF')">Kho</button>
+                                <button type="button" class="btn btn-sm btn-outline-info"
+                                    onclick="applyRoleDefaults('STRINGING_STAFF')">Thợ đan</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                    onclick="applyRoleDefaults('CONTENT_STAFF')">Nội dung</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="applyRoleDefaults('SUPER_ADMIN')">Tất cả</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    onclick="clearAllPermissions()">Bỏ chọn</button>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Column 1 -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h6>📦 Sản phẩm</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="products.view" id="perm_products_view"><label
+                                            class="form-check-label" for="perm_products_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="products.create" id="perm_products_create"><label
+                                            class="form-check-label" for="perm_products_create">Tạo</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="products.update" id="perm_products_update"><label
+                                            class="form-check-label" for="perm_products_update">Sửa</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="products.delete" id="perm_products_delete"><label
+                                            class="form-check-label" for="perm_products_delete">Xóa</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>📋 Đơn hàng</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="orders.view" id="perm_orders_view"><label class="form-check-label"
+                                            for="perm_orders_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="orders.update" id="perm_orders_update"><label
+                                            class="form-check-label" for="perm_orders_update">Cập nhật</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="orders.cancel" id="perm_orders_cancel"><label
+                                            class="form-check-label" for="perm_orders_cancel">Hủy</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>🏸 Đan vợt</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="stringing.view" id="perm_stringing_view"><label
+                                            class="form-check-label" for="perm_stringing_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="stringing.update" id="perm_stringing_update"><label
+                                            class="form-check-label" for="perm_stringing_update">Cập nhật</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="stringing.assign" id="perm_stringing_assign"><label
+                                            class="form-check-label" for="perm_stringing_assign">Phân công</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>📦 Tồn kho</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="inventory.view" id="perm_inventory_view"><label
+                                            class="form-check-label" for="perm_inventory_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="inventory.update" id="perm_inventory_update"><label
+                                            class="form-check-label" for="perm_inventory_update">Cập nhật</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="inventory.import" id="perm_inventory_import"><label
+                                            class="form-check-label" for="perm_inventory_import">Nhập kho</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="inventory.export" id="perm_inventory_export"><label
+                                            class="form-check-label" for="perm_inventory_export">Xuất kho</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>🏭 Nhà cung cấp</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="suppliers.view" id="perm_suppliers_view"><label
+                                            class="form-check-label" for="perm_suppliers_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="suppliers.create" id="perm_suppliers_create"><label
+                                            class="form-check-label" for="perm_suppliers_create">Tạo</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="suppliers.update" id="perm_suppliers_update"><label
+                                            class="form-check-label" for="perm_suppliers_update">Sửa</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="suppliers.delete" id="perm_suppliers_delete"><label
+                                            class="form-check-label" for="perm_suppliers_delete">Xóa</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>👥 Khách hàng</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="customers.view" id="perm_customers_view"><label
+                                            class="form-check-label" for="perm_customers_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="customers.update" id="perm_customers_update"><label
+                                            class="form-check-label" for="perm_customers_update">Cập nhật</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>🔄 Đổi/trả hàng</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="exchanges.view" id="perm_exchanges_view"><label
+                                            class="form-check-label" for="perm_exchanges_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="exchanges.approve" id="perm_exchanges_approve"><label
+                                            class="form-check-label" for="perm_exchanges_approve">Duyệt</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="exchanges.reject" id="perm_exchanges_reject"><label
+                                            class="form-check-label" for="perm_exchanges_reject">Từ chối</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>🛡️ Bảo hành</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="warranties.view" id="perm_warranties_view"><label
+                                            class="form-check-label" for="perm_warranties_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="warranties.update" id="perm_warranties_update"><label
+                                            class="form-check-label" for="perm_warranties_update">Cập nhật</label></div>
+                                </div>
+                            </div>
+
+                            <!-- Column 2 -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h6>⭐ Đánh giá</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="reviews.view" id="perm_reviews_view"><label class="form-check-label"
+                                            for="perm_reviews_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="reviews.approve" id="perm_reviews_approve"><label
+                                            class="form-check-label" for="perm_reviews_approve">Duyệt</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="reviews.hide" id="perm_reviews_hide"><label class="form-check-label"
+                                            for="perm_reviews_hide">Ẩn</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>🎫 Mã giảm giá</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="coupons.view" id="perm_coupons_view"><label class="form-check-label"
+                                            for="perm_coupons_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="coupons.create" id="perm_coupons_create"><label
+                                            class="form-check-label" for="perm_coupons_create">Tạo</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="coupons.update" id="perm_coupons_update"><label
+                                            class="form-check-label" for="perm_coupons_update">Sửa</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="coupons.delete" id="perm_coupons_delete"><label
+                                            class="form-check-label" for="perm_coupons_delete">Xóa</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>🎉 Khuyến mãi</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="promotions.view" id="perm_promotions_view"><label
+                                            class="form-check-label" for="perm_promotions_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="promotions.create" id="perm_promotions_create"><label
+                                            class="form-check-label" for="perm_promotions_create">Tạo</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="promotions.update" id="perm_promotions_update"><label
+                                            class="form-check-label" for="perm_promotions_update">Sửa</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="promotions.delete" id="perm_promotions_delete"><label
+                                            class="form-check-label" for="perm_promotions_delete">Xóa</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>📝 Blog</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="blogs.view" id="perm_blogs_view"><label class="form-check-label"
+                                            for="perm_blogs_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="blogs.create" id="perm_blogs_create"><label class="form-check-label"
+                                            for="perm_blogs_create">Tạo</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="blogs.update" id="perm_blogs_update"><label class="form-check-label"
+                                            for="perm_blogs_update">Sửa</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="blogs.delete" id="perm_blogs_delete"><label class="form-check-label"
+                                            for="perm_blogs_delete">Xóa</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>🖼️ Banner</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="banners.view" id="perm_banners_view"><label class="form-check-label"
+                                            for="perm_banners_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="banners.create" id="perm_banners_create"><label
+                                            class="form-check-label" for="perm_banners_create">Tạo</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="banners.update" id="perm_banners_update"><label
+                                            class="form-check-label" for="perm_banners_update">Sửa</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="banners.delete" id="perm_banners_delete"><label
+                                            class="form-check-label" for="perm_banners_delete">Xóa</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>❓ FAQ</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="faqs.view" id="perm_faqs_view"><label class="form-check-label"
+                                            for="perm_faqs_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="faqs.create" id="perm_faqs_create"><label class="form-check-label"
+                                            for="perm_faqs_create">Tạo</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="faqs.update" id="perm_faqs_update"><label class="form-check-label"
+                                            for="perm_faqs_update">Sửa</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="faqs.delete" id="perm_faqs_delete"><label class="form-check-label"
+                                            for="perm_faqs_delete">Xóa</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>👨‍💼 Nhân viên</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="staff.view" id="perm_staff_view"><label class="form-check-label"
+                                            for="perm_staff_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="staff.create" id="perm_staff_create"><label class="form-check-label"
+                                            for="perm_staff_create">Tạo</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="staff.update" id="perm_staff_update"><label class="form-check-label"
+                                            for="perm_staff_update">Sửa</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="staff.delete" id="perm_staff_delete"><label class="form-check-label"
+                                            for="perm_staff_delete">Xóa</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>⚙️ Cài đặt hệ thống</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="settings.view" id="perm_settings_view"><label
+                                            class="form-check-label" for="perm_settings_view">Xem</label></div>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="settings.update" id="perm_settings_update"><label
+                                            class="form-check-label" for="perm_settings_update">Cập nhật</label></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>📊 Thống kê</h6>
+                                    <div class="form-check"><input class="form-check-input perm-check" type="checkbox"
+                                            value="statistics.view" id="perm_statistics_view"><label
+                                            class="form-check-label" for="perm_statistics_view">Xem</label></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary" onclick="savePermissions()">
+                            <i class="fas fa-save me-2"></i>Lưu quyền
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Modal -->
+        <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Đổi trạng thái</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="statusStaffId">
+                        <p>Nhân viên: <strong id="statusStaffName"></strong></p>
+                        <select class="form-select" id="newStatus">
+                            <option value="ACTIVE">Đang làm việc</option>
+                            <option value="INACTIVE">Tạm nghỉ</option>
+                            <option value="RESIGNED">Đã nghỉ việc</option>
+                            <option value="BANNED">Bị cấm</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary" onclick="saveStatus()">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            let staffList = [];
+            let currentPage = 0;
+            let totalPages = 0;
+            let searchTimeout = null;
+            let staffModal = null;
+            let permissionsModal = null;
+            let statusModal = null;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('Staff Management Page Loaded');
+                loadStaff();
+            });
+
+            function getModal(id) {
+                const el = document.getElementById(id);
+                if (el && window.bootstrap) {
+                    return new bootstrap.Modal(el);
+                }
+                return null;
+            }
+
+            function debounceSearch() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => loadStaff(), 300);
+            }
+
+            function resetFilters() {
+                document.getElementById('searchInput').value = '';
+                document.getElementById('roleFilter').value = '';
+                document.getElementById('statusFilter').value = '';
+                loadStaff();
+            }
+
+            async function loadStaff(page = 0) {
+                try {
+                    const search = document.getElementById('searchInput').value;
+                    const role = document.getElementById('roleFilter').value;
+                    const status = document.getElementById('statusFilter').value;
+
+                    let url = `/admin/api/staff?page=${page}&size=9`;
+                    if (search) url += `&search=${encodeURIComponent(search)}`;
+                    if (role) url += `&role=${role}`;
+                    if (status) url += `&status=${status}`;
+
+                    console.log('Fetching:', url);
+                    const response = await fetch(url);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        staffList = result.data.content || [];
+                        currentPage = result.data.number || 0;
+                        totalPages = result.data.totalPages || 0;
+                        renderStaff();
+                        renderPagination();
+                    }
+                } catch (error) {
+                    console.error('Error loading staff:', error);
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }
+
+            function getRoleName(role) {
+                const names = {
+                    'SUPER_ADMIN': 'Super Admin',
+                    'SALE_STAFF': 'Bán hàng',
+                    'STRINGING_STAFF': 'Thợ đan',
+                    'WAREHOUSE_STAFF': 'Kho',
+                    'CONTENT_STAFF': 'Nội dung'
+                };
+                return names[role] || role;
+            }
+
+            function getStatusName(status) {
+                const names = {
+                    'ACTIVE': 'Đang làm',
+                    'INACTIVE': 'Tạm nghỉ',
+                    'RESIGNED': 'Đã nghỉ',
+                    'BANNED': 'Bị cấm'
+                };
+                return names[status] || status;
+            }
+
+            function getStatusClass(status) {
+                const classes = {
+                    'ACTIVE': 'bg-success',
+                    'INACTIVE': 'bg-warning',
+                    'RESIGNED': 'bg-secondary',
+                    'BANNED': 'bg-danger'
+                };
+                return classes[status] || 'bg-secondary';
+            }
+
+            function getInitials(name) {
+                return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            }
+
+            function renderStaff() {
+                const container = document.getElementById('staffList');
+                const emptyState = document.getElementById('emptyState');
+
+                if (staffList.length === 0) {
+                    emptyState.style.display = 'block';
+                    container.style.display = 'none';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                container.style.display = 'flex';
+                container.innerHTML = staffList.map(s => `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="staff-card">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="staff-avatar me-3">${getInitials(s.fullName)}</div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">${s.fullName}</h6>
+                                    <small class="text-muted">${s.email}</small>
+                                </div>
+                                <span class="badge ${getStatusClass(s.status)} status-badge">${getStatusName(s.status)}</span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="role-badge role-${s.role}">${getRoleName(s.role)}</span>
+                                ${s.phone ? `<small class="text-muted ms-2"><i class="fas fa-phone"></i> ${s.phone}</small>` : ''}
+                            </div>
+                            ${s.permissions && s.permissions.length > 0 ? `
+                                <div class="mb-2">
+                                    ${s.permissions.slice(0, 3).map(p => `<span class="permission-tag">${p}</span>`).join('')}
+                                    ${s.permissions.length > 3 ? `<span class="permission-tag">+${s.permissions.length - 3}</span>` : ''}
+                                </div>
+                            ` : ''}
+                            <div class="btn-group btn-group-sm w-100 mt-2">
+                                <button class="btn btn-outline-primary" onclick="editStaff(${s.staffId})" title="Sửa">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-info" onclick="openPermissionsModal(${s.staffId})" title="Phân quyền">
+                                    <i class="fas fa-key"></i>
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="openStatusModal(${s.staffId})" title="Đổi trạng thái">
+                                    <i class="fas fa-toggle-on"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteStaff(${s.staffId})" title="Xóa">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function renderPagination() {
+                const paginationNav = document.getElementById('pagination');
+                const ul = paginationNav.querySelector('ul');
+
+                if (totalPages <= 1) {
+                    paginationNav.style.display = 'none';
+                    return;
+                }
+
+                paginationNav.style.display = 'block';
+                let html = '';
+
+                html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadStaff(${currentPage - 1}); return false;">«</a>
+                </li>`;
+
+                for (let i = 0; i < totalPages; i++) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadStaff(${i}); return false;">${i + 1}</a>
+                    </li>`;
+                }
+
+                html += `<li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadStaff(${currentPage + 1}); return false;">»</a>
+                </li>`;
+
+                ul.innerHTML = html;
+            }
+
+            function toggleStringingFields() {
+                const role = document.getElementById('role').value;
+                const show = role === 'STRINGING_STAFF';
+                document.getElementById('stringingFields').style.display = show ? 'block' : 'none';
+                document.getElementById('capacityField').style.display = show ? 'flex' : 'none';
+            }
+
+            function openCreateModal() {
+                document.getElementById('modalTitle').textContent = 'Thêm nhân viên';
+                document.getElementById('staffForm').reset();
+                document.getElementById('staffId').value = '';
+                document.getElementById('passwordRequired').style.display = 'inline';
+                document.getElementById('password').required = true;
+                toggleStringingFields();
+
+                staffModal = getModal('staffModal');
+                if (staffModal) staffModal.show();
+            }
+
+            async function editStaff(id) {
+                try {
+                    const response = await fetch(`/admin/api/staff/${id}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const s = result.data;
+                        document.getElementById('modalTitle').textContent = 'Sửa nhân viên';
+                        document.getElementById('staffId').value = s.staffId;
+                        document.getElementById('email').value = s.email;
+                        document.getElementById('fullName').value = s.fullName || '';
+                        document.getElementById('phone').value = s.phone || '';
+                        document.getElementById('role').value = s.role;
+                        document.getElementById('stringingSkillLevel').value = s.stringingSkillLevel || '';
+                        document.getElementById('dailyStringingCapacity').value = s.dailyStringingCapacity || '';
+                        document.getElementById('password').value = '';
+                        document.getElementById('passwordRequired').style.display = 'none';
+                        document.getElementById('password').required = false;
+                        toggleStringingFields();
+
+                        staffModal = getModal('staffModal');
+                        if (staffModal) staffModal.show();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Lỗi tải thông tin nhân viên');
+                }
+            }
+
+            async function saveStaff() {
+                const id = document.getElementById('staffId').value;
+                const data = {
+                    email: document.getElementById('email').value,
+                    fullName: document.getElementById('fullName').value,
+                    phone: document.getElementById('phone').value,
+                    role: document.getElementById('role').value,
+                    stringingSkillLevel: document.getElementById('stringingSkillLevel').value || null,
+                    dailyStringingCapacity: document.getElementById('dailyStringingCapacity').value || null
+                };
+
+                const password = document.getElementById('password').value;
+                if (password) data.password = password;
+
+                try {
+                    const url = id ? `/admin/api/staff/${id}` : '/admin/api/staff';
+                    const method = id ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        // Auto-assign default permissions for new staff (not editing)
+                        if (!id && result.data && result.data.staffId) {
+                            const newStaffId = result.data.staffId;
+                            const role = data.role;
+
+                            // Get default permissions for this role
+                            let defaultPerms = [];
+                            if (role === 'SUPER_ADMIN') {
+                                // All permissions for super admin
+                                defaultPerms = Array.from(document.querySelectorAll('.perm-check')).map(cb => cb.value);
+                            } else if (rolePermissions[role]) {
+                                defaultPerms = rolePermissions[role];
+                            }
+
+                            // Assign permissions if any
+                            if (defaultPerms.length > 0) {
+                                try {
+                                    await fetch(`/admin/api/staff/${newStaffId}/permissions`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ permissions: defaultPerms })
+                                    });
+                                    console.log('Auto-assigned permissions for new staff:', defaultPerms);
+                                } catch (permError) {
+                                    console.error('Error auto-assigning permissions:', permError);
+                                }
+                            }
+                        }
+
+                        if (staffModal) staffModal.hide();
+                        loadStaff(currentPage);
+                        alert(result.message || 'Lưu thành công!');
+                    } else {
+                        alert('Lỗi: ' + (result.message || 'Không thể lưu'));
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Lỗi kết nối server');
+                }
+            }
+
+            async function deleteStaff(id) {
+                if (!confirm('Bạn có chắc muốn xóa nhân viên này?')) return;
+
+                try {
+                    const response = await fetch(`/admin/api/staff/${id}`, { method: 'DELETE' });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        loadStaff(currentPage);
+                        alert('Đã xóa nhân viên');
+                    } else {
+                        alert('Lỗi: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+
+            async function openPermissionsModal(id) {
+                const staff = staffList.find(s => s.staffId === id);
+                if (!staff) return;
+
+                document.getElementById('permStaffId').value = id;
+                document.getElementById('permStaffName').textContent = staff.fullName;
+
+                // Reset all checkboxes
+                document.querySelectorAll('.perm-check').forEach(cb => cb.checked = false);
+
+                // Check existing permissions
+                if (staff.permissions) {
+                    staff.permissions.forEach(p => {
+                        const cb = document.querySelector(`.perm-check[value="${p}"]`);
+                        if (cb) cb.checked = true;
+                    });
+                }
+
+                permissionsModal = getModal('permissionsModal');
+                if (permissionsModal) permissionsModal.show();
+            }
+
+            async function savePermissions() {
+                const id = document.getElementById('permStaffId').value;
+                const permissions = Array.from(document.querySelectorAll('.perm-check:checked'))
+                    .map(cb => cb.value);
+
+                try {
+                    const response = await fetch(`/admin/api/staff/${id}/permissions`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ permissions })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        if (permissionsModal) permissionsModal.hide();
+                        loadStaff(currentPage);
+                        alert('Cập nhật quyền thành công!');
+                    } else {
+                        alert('Lỗi: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+
+            function openStatusModal(id) {
+                const staff = staffList.find(s => s.staffId === id);
+                if (!staff) return;
+
+                document.getElementById('statusStaffId').value = id;
+                document.getElementById('statusStaffName').textContent = staff.fullName;
+                document.getElementById('newStatus').value = staff.status;
+
+                statusModal = getModal('statusModal');
+                if (statusModal) statusModal.show();
+            }
+
+            async function saveStatus() {
+                const id = document.getElementById('statusStaffId').value;
+                const status = document.getElementById('newStatus').value;
+
+                try {
+                    const response = await fetch(`/admin/api/staff/${id}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        if (statusModal) statusModal.hide();
+                        loadStaff(currentPage);
+                        alert('Cập nhật trạng thái thành công!');
+                    } else {
+                        alert('Lỗi: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+
+            // Permission role defaults
+            const rolePermissions = {
+                SALE_STAFF: [
+                    'orders.view', 'orders.update', 'orders.cancel',
+                    'customers.view', 'customers.update',
+                    'exchanges.view', 'exchanges.approve', 'exchanges.reject',
+                    'warranties.view', 'warranties.update',
+                    'reviews.view', 'reviews.approve', 'reviews.hide',
+                    'stringing.view', 'stringing.assign'
+                ],
+                WAREHOUSE_STAFF: [
+                    'inventory.view', 'inventory.update', 'inventory.import', 'inventory.export',
+                    'suppliers.view', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
+                    'products.view',
+                    'orders.view'
+                ],
+                STRINGING_STAFF: [
+                    'stringing.view', 'stringing.update'
+                ],
+                CONTENT_STAFF: [
+                    'blogs.view', 'blogs.create', 'blogs.update', 'blogs.delete',
+                    'banners.view', 'banners.create', 'banners.update', 'banners.delete',
+                    'faqs.view', 'faqs.create', 'faqs.update', 'faqs.delete',
+                    'coupons.view', 'coupons.create', 'coupons.update', 'coupons.delete',
+                    'promotions.view', 'promotions.create', 'promotions.update', 'promotions.delete'
+                ],
+                SUPER_ADMIN: [] // Will select all
+            };
+
+            function applyRoleDefaults(role) {
+                // First clear all
+                document.querySelectorAll('.perm-check').forEach(cb => cb.checked = false);
+
+                if (role === 'SUPER_ADMIN') {
+                    // Select all for SUPER_ADMIN
+                    document.querySelectorAll('.perm-check').forEach(cb => cb.checked = true);
+                } else {
+                    // Apply specific role permissions
+                    const perms = rolePermissions[role] || [];
+                    perms.forEach(p => {
+                        const cb = document.querySelector(`.perm-check[value="${p}"]`);
+                        if (cb) cb.checked = true;
+                    });
+                }
+            }
+
+            function clearAllPermissions() {
+                document.querySelectorAll('.perm-check').forEach(cb => cb.checked = false);
+            }
+        </script>
+    </div>
+</body>
+
+</html>

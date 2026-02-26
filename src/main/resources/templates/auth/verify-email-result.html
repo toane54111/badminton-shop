@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác thực thành công - Badminton Shop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+        }
+
+        .icon-wrapper {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .icon-wrapper i {
+            font-size: 40px;
+            color: #27ae60;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card p-5 text-center">
+            <!-- Success -->
+            <div th:if="${success}">
+                <div class="icon-wrapper">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 class="mb-3 text-success">Xác thực thành công!</h2>
+                <p class="text-muted mb-4">
+                    Email của bạn đã được xác thực. Bây giờ bạn có thể đăng nhập vào tài khoản.
+                </p>
+                <a th:href="@{/login}" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập ngay
+                </a>
+            </div>
+
+            <!-- Error -->
+            <div th:if="${error}">
+                <div class="icon-wrapper" style="background: linear-gradient(135deg, #ffecd2, #fcb69f);">
+                    <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
+                </div>
+                <h2 class="mb-3 text-danger">Xác thực thất bại!</h2>
+                <p class="text-muted mb-4" th:text="${error}">
+                    Token không hợp lệ hoặc đã hết hạn.
+                </p>
+                <a th:href="@{/login}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Quay lại đăng nhập
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

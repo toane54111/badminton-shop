@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý Blog</title>
+    <style>
+        .blog-card {
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .blog-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .blog-image {
+            height: 150px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .blog-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        .modal-xl {
+            max-width: 1000px;
+        }
+
+        .ql-editor {
+            min-height: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title"><i class="fas fa-newspaper me-2"></i>Quản lý Blog</h1>
+                <p class="page-subtitle">Tạo và quản lý bài viết blog</p>
+            </div>
+            <button class="btn btn-primary" onclick="showCreateModal()">
+                <i class="fas fa-plus me-1"></i>Thêm bài viết
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="searchKeyword"
+                            placeholder="Tìm kiếm theo tiêu đề...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterCategory">
+                            <option value="">Tất cả danh mục</option>
+                            <th:block th:each="cat : ${categories}">
+                                <option th:value="${cat}" th:text="${cat}"></option>
+                            </th:block>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterStatus">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="DRAFT">Bản nháp</option>
+                            <option value="PUBLISHED">Đã xuất bản</option>
+                            <option value="ARCHIVED">Đã lưu trữ</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="loadBlogs()">
+                            <i class="fas fa-search me-1"></i>Tìm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Blogs Table -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Hình ảnh</th>
+                                <th>Tiêu đề</th>
+                                <th>Danh mục</th>
+                                <th>Tác giả</th>
+                                <th>Trạng thái</th>
+                                <th>Lượt xem</th>
+                                <th>Ngày tạo</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="blogsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagination" class="d-flex justify-content-center mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Blog Modal -->
+        <div class="modal fade" id="blogModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Thêm bài viết</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="blogForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="postId">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tiêu đề <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="title" required
+                                            placeholder="Nhập tiêu đề bài viết">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Slug <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="slug" required
+                                            placeholder="duong-dan-url">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tóm tắt</label>
+                                        <textarea class="form-control" id="excerpt" rows="2"
+                                            placeholder="Mô tả ngắn về bài viết"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Nội dung <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="content" rows="10" required
+                                            placeholder="Nội dung bài viết..."></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Danh mục</label>
+                                        <input type="text" class="form-control" id="category"
+                                            placeholder="VD: Hướng dẫn, Review">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Hình đại diện</label>
+                                        <input type="url" class="form-control" id="featuredImage"
+                                            placeholder="URL hình ảnh">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tags (JSON)</label>
+                                        <input type="text" class="form-control" id="tags"
+                                            placeholder='["tag1", "tag2"]'>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Trạng thái</label>
+                                        <select class="form-select" id="status">
+                                            <option value="DRAFT">Bản nháp</option>
+                                            <option value="PUBLISHED">Xuất bản</option>
+                                            <option value="ARCHIVED">Lưu trữ</option>
+                                        </select>
+                                    </div>
+                                    <hr>
+                                    <h6><i class="fas fa-search me-1"></i>SEO</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Meta Title</label>
+                                        <input type="text" class="form-control" id="metaTitle"
+                                            placeholder="Tiêu đề SEO">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Meta Description</label>
+                                        <textarea class="form-control" id="metaDescription" rows="2"
+                                            placeholder="Mô tả SEO"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const blogModal = new bootstrap.Modal(document.getElementById('blogModal'));
+            const csrfToken = /*[[${_csrf.token}]]*/ '';
+            const csrfHeader = /*[[${_csrf.headerName}]]*/ '';
+            let currentPage = 0;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                loadBlogs();
+
+                document.getElementById('blogForm').addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    saveBlog();
+                });
+
+                // Auto-generate slug from title
+                document.getElementById('title').addEventListener('input', function () {
+                    if (!document.getElementById('postId').value) {
+                        document.getElementById('slug').value = generateSlug(this.value);
+                    }
+                });
+            });
+
+            function generateSlug(text) {
+                return text.toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/đ/g, 'd')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '');
+            }
+
+            function loadBlogs(page = 0) {
+                currentPage = page;
+                fetch(`/admin/api/blogs?page=${page}&size=10`)
+                    .then(response => response.json())
+                    .then(data => {
+                        renderBlogs(data.content);
+                        renderPagination(data);
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+            function renderBlogs(blogs) {
+                const tbody = document.getElementById('blogsTableBody');
+                if (blogs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Không có bài viết nào</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = blogs.map(blog => `
+                    <tr>
+                        <td>
+                            <img src="${blog.featuredImage || '/images/no-image.png'}" 
+                                alt="" class="rounded" style="width: 60px; height: 40px; object-fit: cover;">
+                        </td>
+                        <td>
+                            <div class="fw-bold">${blog.title}</div>
+                            <small class="text-muted">${blog.slug}</small>
+                        </td>
+                        <td><span class="badge bg-secondary">${blog.category || 'Chưa phân loại'}</span></td>
+                        <td>${blog.authorName || 'N/A'}</td>
+                        <td>${getStatusBadge(blog.status)}</td>
+                        <td><i class="fas fa-eye text-muted me-1"></i>${blog.viewCount || 0}</td>
+                        <td>${formatDate(blog.createdAt)}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editBlog(${blog.postId})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                ${blog.status !== 'PUBLISHED' ? `
+                                    <button class="btn btn-sm btn-outline-success" onclick="publishBlog(${blog.postId})">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteBlog(${blog.postId})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            function getStatusBadge(status) {
+                const badges = {
+                    'DRAFT': '<span class="badge bg-secondary">Bản nháp</span>',
+                    'PUBLISHED': '<span class="badge bg-success">Đã xuất bản</span>',
+                    'ARCHIVED': '<span class="badge bg-warning">Lưu trữ</span>'
+                };
+                return badges[status] || badges['DRAFT'];
+            }
+
+            function formatDate(dateStr) {
+                if (!dateStr) return 'N/A';
+                return new Date(dateStr).toLocaleDateString('vi-VN');
+            }
+
+            function renderPagination(data) {
+                const container = document.getElementById('pagination');
+                if (data.totalPages <= 1) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                let html = '<nav><ul class="pagination pagination-sm">';
+                for (let i = 0; i < data.totalPages; i++) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadBlogs(${i})">${i + 1}</a>
+                    </li>`;
+                }
+                html += '</ul></nav>';
+                container.innerHTML = html;
+            }
+
+            function showCreateModal() {
+                document.getElementById('modalTitle').textContent = 'Thêm bài viết';
+                document.getElementById('blogForm').reset();
+                document.getElementById('postId').value = '';
+                document.getElementById('status').value = 'DRAFT';
+                blogModal.show();
+            }
+
+            function editBlog(id) {
+                fetch(`/admin/api/blogs/${id}`)
+                    .then(response => response.json())
+                    .then(blog => {
+                        document.getElementById('modalTitle').textContent = 'Sửa bài viết';
+                        document.getElementById('postId').value = blog.postId;
+                        document.getElementById('title').value = blog.title;
+                        document.getElementById('slug').value = blog.slug;
+                        document.getElementById('excerpt').value = blog.excerpt || '';
+                        document.getElementById('content').value = blog.content || '';
+                        document.getElementById('category').value = blog.category || '';
+                        document.getElementById('featuredImage').value = blog.featuredImage || '';
+                        document.getElementById('tags').value = blog.tags || '';
+                        document.getElementById('status').value = blog.status || 'DRAFT';
+                        document.getElementById('metaTitle').value = blog.metaTitle || '';
+                        document.getElementById('metaDescription').value = blog.metaDescription || '';
+                        blogModal.show();
+                    })
+                    .catch(error => alert('Lỗi tải dữ liệu: ' + error.message));
+            }
+
+            function saveBlog() {
+                const id = document.getElementById('postId').value;
+                const data = {
+                    title: document.getElementById('title').value,
+                    slug: document.getElementById('slug').value,
+                    excerpt: document.getElementById('excerpt').value || null,
+                    content: document.getElementById('content').value,
+                    category: document.getElementById('category').value || null,
+                    featuredImage: document.getElementById('featuredImage').value || null,
+                    tags: document.getElementById('tags').value || null,
+                    status: document.getElementById('status').value,
+                    metaTitle: document.getElementById('metaTitle').value || null,
+                    metaDescription: document.getElementById('metaDescription').value || null
+                };
+
+                const url = id ? '/admin/api/blogs/' + id : '/admin/api/blogs';
+                const method = id ? 'PUT' : 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (!response.ok) throw response;
+                        return response.json();
+                    })
+                    .then(() => {
+                        blogModal.hide();
+                        loadBlogs(currentPage);
+                        alert(id ? 'Đã cập nhật bài viết!' : 'Đã thêm bài viết!');
+                    })
+                    .catch(async error => {
+                        if (error.json) {
+                            const err = await error.json();
+                            alert('Lỗi: ' + (err.error || 'Có lỗi xảy ra'));
+                        } else {
+                            alert('Có lỗi xảy ra');
+                        }
+                    });
+            }
+
+            function publishBlog(id) {
+                if (!confirm('Bạn có chắc muốn xuất bản bài viết này?')) return;
+
+                fetch(`/admin/api/blogs/${id}/publish`, {
+                    method: 'PUT',
+                    headers: { [csrfHeader]: csrfToken }
+                })
+                    .then(response => {
+                        if (!response.ok) throw response;
+                        return response.json();
+                    })
+                    .then(() => {
+                        loadBlogs(currentPage);
+                        alert('Đã xuất bản bài viết!');
+                    })
+                    .catch(() => alert('Có lỗi xảy ra'));
+            }
+
+            function deleteBlog(id) {
+                if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return;
+
+                fetch(`/admin/api/blogs/${id}`, {
+                    method: 'DELETE',
+                    headers: { [csrfHeader]: csrfToken }
+                })
+                    .then(response => {
+                        if (!response.ok) throw response;
+                        return response.json();
+                    })
+                    .then(() => {
+                        loadBlogs(currentPage);
+                        alert('Đã xóa bài viết!');
+                    })
+                    .catch(() => alert('Có lỗi xảy ra'));
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

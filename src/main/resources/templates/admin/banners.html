@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý Banner</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Quản lý Banner</h1>
+                <p class="page-subtitle">Quản lý banner slideshow và quảng cáo</p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bannerModal"
+                    onclick="resetForm()">
+                    <i class="fas fa-plus me-2"></i>Thêm Banner
+                </button>
+            </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" id="keyword" name="keyword"
+                            placeholder="Tìm theo tiêu đề..." th:value="${param.keyword}">
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="position" name="position">
+                            <option value="">Tất cả vị trí</option>
+                            <option th:each="pos : ${positions}" th:value="${pos.name()}" th:text="${pos.name()}"
+                                th:selected="${param.position != null and param.position[0] == pos.name()}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="ACTIVE"
+                                th:selected="${param.status != null and param.status[0] == 'ACTIVE'}">Đang hoạt động
+                            </option>
+                            <option value="INACTIVE"
+                                th:selected="${param.status != null and param.status[0] == 'INACTIVE'}">Không hoạt động
+                            </option>
+                            <option value="SCHEDULED"
+                                th:selected="${param.status != null and param.status[0] == 'SCHEDULED'}">Chờ hiển thị
+                            </option>
+                            <option value="EXPIRED"
+                                th:selected="${param.status != null and param.status[0] == 'EXPIRED'}">Đã hết hạn
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search me-1"></i>Tìm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Banners Table -->
+        <div class="data-table-wrapper">
+            <div class="table-responsive">
+                <table class="table data-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Hình ảnh</th>
+                            <th>Tiêu đề</th>
+                            <th>Vị trí</th>
+                            <th>Link</th>
+                            <th>Thời gian</th>
+                            <th>Thứ tự</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bannersTable">
+                        <tr th:each="banner : ${banners.content}">
+                            <td>
+                                <th:block th:if="${banner.imageUrl != null}">
+                                    <img th:src="${banner.imageUrl}" th:alt="${banner.title}"
+                                        style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                </th:block>
+                                <th:block th:if="${banner.imageUrl == null}">
+                                    <div
+                                        style="width: 60px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-font text-white"></i>
+                                    </div>
+                                </th:block>
+                            </td>
+                            <td th:text="${banner.title}">Banner Title</td>
+                            <td>
+                                <span class="badge bg-info" th:text="${banner.position}">HOME_SLIDER</span>
+                            </td>
+                            <td>
+                                <a th:if="${banner.linkUrl != null}" th:href="${banner.linkUrl}" target="_blank"
+                                    class="text-truncate d-inline-block" style="max-width: 120px;">
+                                    <i class="fas fa-external-link-alt me-1"></i>Link
+                                </a>
+                                <span th:if="${banner.linkUrl == null}" class="text-muted">-</span>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <th:block th:if="${banner.startsAt != null}">
+                                        <i class="fas fa-calendar-alt text-muted me-1"></i>
+                                        <span
+                                            th:text="${#temporals.format(banner.startsAt, 'dd/MM/yyyy')}">01/01/2024</span>
+                                    </th:block>
+                                    <th:block th:if="${banner.endsAt != null}">
+                                        -
+                                        <span
+                                            th:text="${#temporals.format(banner.endsAt, 'dd/MM/yyyy')}">31/12/2024</span>
+                                    </th:block>
+                                    <th:block th:if="${banner.startsAt == null and banner.endsAt == null}">
+                                        <span class="text-muted">Không giới hạn</span>
+                                    </th:block>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary" th:text="${banner.displayOrder}">0</span>
+                            </td>
+                            <td>
+                                <span class="badge" th:classappend="${banner.isActive} ? 'bg-success' : 'bg-warning'"
+                                    th:text="${banner.isActive} ? 'Hoạt động' : 'Không hoạt động'">Hoạt động</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-warning" title="Sửa"
+                                        th:onclick="'editBanner(' + ${banner.bannerId} + ')'">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" title="Xóa"
+                                        th:onclick="'deleteBanner(' + ${banner.bannerId} + ')'">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${banners.content == null or #lists.isEmpty(banners.content)}">
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fas fa-images fa-3x mb-3 d-block"></i>
+                                Chưa có banner nào
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center p-3" th:if="${banners.totalPages > 1}">
+                <div class="text-muted">
+                    Hiển thị <span th:text="${banners.number * banners.size + 1}">1</span> -
+                    <span
+                        th:text="${(banners.number + 1) * banners.size > banners.totalElements ? banners.totalElements : (banners.number + 1) * banners.size}">10</span>
+                    trong <span th:text="${banners.totalElements}">100</span> banner
+                </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item" th:classappend="${banners.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/banners(page=${banners.number - 1})}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item" th:each="i : ${#numbers.sequence(0, banners.totalPages - 1)}"
+                            th:classappend="${i == banners.number} ? 'active'">
+                            <a class="page-link" th:href="@{/admin/banners(page=${i})}" th:text="${i + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${banners.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/banners(page=${banners.number + 1})}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Banner Modal -->
+        <div class="modal fade" id="bannerModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Thêm Banner</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="bannerForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="bannerId">
+
+                            <div class="row">
+                                <!-- Left Column -->
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tiêu đề <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="title" required
+                                            placeholder="VD: Flash Sale 50%">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">URL Hình ảnh</label>
+                                        <input type="url" class="form-control" id="imageUrl"
+                                            placeholder="https://example.com/banner.jpg">
+                                        <small class="text-muted">Để trống sẽ sử dụng hình ảnh mặc định</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">URL Hình ảnh Mobile</label>
+                                        <input type="url" class="form-control" id="mobileImageUrl"
+                                            placeholder="https://example.com/banner-mobile.jpg">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Link đích</label>
+                                        <input type="url" class="form-control" id="linkUrl"
+                                            placeholder="https://example.com/promotion">
+                                    </div>
+                                </div>
+
+                                <!-- Right Column -->
+                                <div class="col-md-6">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Vị trí <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="bannerPosition" required>
+                                                <option value="HOME_SLIDER">Slider trang chủ</option>
+                                                <option value="SIDEBAR">Sidebar</option>
+                                                <option value="POPUP">Popup</option>
+                                                <option value="CATEGORY_PAGE">Trang danh mục</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Thứ tự hiển thị</label>
+                                            <input type="number" class="form-control" id="displayOrder" min="0"
+                                                value="0">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Link Target</label>
+                                        <select class="form-select" id="linkTarget">
+                                            <option value="_SELF">Cùng tab (_self)</option>
+                                            <option value="_BLANK">Tab mới (_blank)</option>
+                                        </select>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Ngày bắt đầu</label>
+                                            <input type="datetime-local" class="form-control" id="startsAt">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Ngày kết thúc</label>
+                                            <input type="datetime-local" class="form-control" id="endsAt">
+                                        </div>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                        <label class="form-check-label">Hoạt động</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            const bannerModal = new bootstrap.Modal(document.getElementById('bannerModal'));
+
+            document.getElementById('bannerForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                saveBanner();
+            });
+
+            function resetForm() {
+                document.getElementById('modalTitle').textContent = 'Thêm Banner';
+                document.getElementById('bannerForm').reset();
+                document.getElementById('bannerId').value = '';
+                document.getElementById('isActive').checked = true;
+                document.getElementById('bannerPosition').value = 'HOME_SLIDER';
+                document.getElementById('displayOrder').value = 0;
+            }
+
+            function saveBanner() {
+                const id = document.getElementById('bannerId').value;
+
+                const data = {
+                    title: document.getElementById('title').value,
+                    imageUrl: document.getElementById('imageUrl').value || '/images/no-image.png',
+                    mobileImageUrl: document.getElementById('mobileImageUrl').value || null,
+                    linkUrl: document.getElementById('linkUrl').value || null,
+                    linkTarget: document.getElementById('linkTarget').value,
+                    position: document.getElementById('bannerPosition').value,
+                    displayOrder: parseInt(document.getElementById('displayOrder').value) || 0,
+                    startsAt: document.getElementById('startsAt').value || null,
+                    endsAt: document.getElementById('endsAt').value || null,
+                    isActive: document.getElementById('isActive').checked
+                };
+
+                if (!data.title) {
+                    alert('Vui lòng nhập tiêu đề banner');
+                    return;
+                }
+
+                const url = id ? '/admin/api/banners/' + id : '/admin/api/banners';
+                const method = id ? 'PUT' : 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (response.status === 403) {
+                            throw new Error('Bạn không có quyền thực hiện thao tác này.');
+                        }
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.error || 'Lỗi server: ' + response.status);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (result.error) {
+                            alert('Lỗi: ' + result.error);
+                        } else {
+                            bannerModal.hide();
+                            location.reload();
+                        }
+                    })
+                    .catch(error => alert('Có lỗi xảy ra: ' + error.message));
+            }
+
+            function editBanner(id) {
+                fetch('/admin/api/banners/' + id)
+                    .then(response => response.json())
+                    .then(banner => {
+                        document.getElementById('modalTitle').textContent = 'Sửa Banner';
+                        document.getElementById('bannerId').value = banner.bannerId;
+                        document.getElementById('title').value = banner.title;
+                        document.getElementById('imageUrl').value = banner.imageUrl || '';
+                        document.getElementById('mobileImageUrl').value = banner.mobileImageUrl || '';
+                        document.getElementById('linkUrl').value = banner.linkUrl || '';
+                        document.getElementById('linkTarget').value = banner.linkTarget || '_SELF';
+                        document.getElementById('bannerPosition').value = banner.position;
+                        document.getElementById('displayOrder').value = banner.displayOrder || 0;
+                        document.getElementById('startsAt').value = banner.startsAt ? banner.startsAt.slice(0, 16) : '';
+                        document.getElementById('endsAt').value = banner.endsAt ? banner.endsAt.slice(0, 16) : '';
+                        document.getElementById('isActive').checked = banner.isActive;
+
+                        bannerModal.show();
+                    });
+            }
+
+            function deleteBanner(id) {
+                if (confirm('Bạn có chắc muốn xóa banner này?')) {
+                    fetch('/admin/api/banners/' + id, { method: 'DELETE' })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.message) {
+                                location.reload();
+                            } else if (result.error) {
+                                alert('Lỗi: ' + result.error);
+                            }
+                        });
+                }
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

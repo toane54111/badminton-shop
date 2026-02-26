@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/admin}">
+
+<head>
+    <title>Quản lý nhà cung cấp</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">Quản lý nhà cung cấp</h1>
+                <p class="page-subtitle">Danh sách các nhà cung cấp trong hệ thống</p>
+            </div>
+            <div sec:authorize="hasRole('SUPER_ADMIN') or hasAuthority('inventory.import')">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#supplierModal">
+                    <i class="fas fa-plus me-2"></i>Thêm nhà cung cấp
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Tìm kiếm</label>
+                        <input type="text" class="form-control" id="keyword" name="keyword"
+                            placeholder="Tên, mã, email..." th:value="${param.keyword}">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-outline-primary me-2">
+                            <i class="fas fa-search me-1"></i>Tìm kiếm
+                        </button>
+                        <a th:href="@{/admin/suppliers}" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo me-1"></i>Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Suppliers Table -->
+        <div class="data-table-wrapper">
+            <div class="table-responsive">
+                <table class="table data-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Tên</th>
+                            <th>Mã</th>
+                            <th>Người liên hệ</th>
+                            <th>Email</th>
+                            <th>Điện thoại</th>
+                            <th>Địa chỉ</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="supplier : ${suppliers.content}">
+                            <td>
+                                <div class="fw-medium" th:text="${supplier.name}">Tên NCC</div>
+                            </td>
+                            <td th:text="${supplier.code ?: '-'}">CODE</td>
+                            <td th:text="${supplier.contactName ?: '-'}">Tên liên hệ</td>
+                            <td>
+                                <a th:href="'mailto:' + ${supplier.contactEmail}"
+                                    th:text="${supplier.contactEmail ?: '-'}">email@example.com</a>
+                            </td>
+                            <td th:text="${supplier.contactPhone ?: '-'}">0123456789</td>
+                            <td>
+                                <span
+                                    th:text="${supplier.address != null ? (supplier.address + (supplier.city != null ? ', ' + supplier.city : '')) : '-'}">Địa
+                                    chỉ</span>
+                            </td>
+                            <td>
+                                <span th:if="${supplier.isActive}" class="badge bg-success">Hoạt động</span>
+                                <span th:unless="${supplier.isActive}" class="badge bg-secondary">Ngừng hoạt động</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm"
+                                    sec:authorize="hasRole('SUPER_ADMIN') or hasAuthority('inventory.import')">
+                                    <button type="button" class="btn btn-outline-warning" title="Sửa"
+                                        th:onclick="'openEditModal(' + ${supplier.supplierId} + ')'">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" title="Xóa"
+                                        th:onclick="'deleteSupplier(' + ${supplier.supplierId} + ')'">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${suppliers.content == null or #lists.isEmpty(suppliers.content)}">
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fas fa-truck fa-3x mb-3 d-block"></i>
+                                Chưa có nhà cung cấp nào
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center p-3" th:if="${suppliers.totalPages > 1}">
+                <div class="text-muted">
+                    Hiển thị <span th:text="${suppliers.number * suppliers.size + 1}">1</span> -
+                    <span
+                        th:text="${(suppliers.number + 1) * suppliers.size > suppliers.totalElements ? suppliers.totalElements : (suppliers.number + 1) * suppliers.size}">10</span>
+                    trong <span th:text="${suppliers.totalElements}">100</span> nhà cung cấp
+                </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item" th:classappend="${suppliers.first} ? 'disabled'">
+                            <a class="page-link"
+                                th:href="@{/admin/suppliers(page=${suppliers.number - 1}, keyword=${param.keyword})}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item" th:each="i : ${#numbers.sequence(0, suppliers.totalPages - 1)}"
+                            th:classappend="${i == suppliers.number} ? 'active'">
+                            <a class="page-link" th:href="@{/admin/suppliers(page=${i}, keyword=${param.keyword})}"
+                                th:text="${i + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${suppliers.last} ? 'disabled'">
+                            <a class="page-link"
+                                th:href="@{/admin/suppliers(page=${suppliers.number + 1}, keyword=${param.keyword})}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Create/Edit Modal - inside fragment -->
+        <div class="modal fade" id="supplierModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Thêm nhà cung cấp</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="supplierForm">
+                            <input type="hidden" id="supplierId">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Tên nhà cung cấp <span
+                                            class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="supplierName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Mã nhà cung cấp</label>
+                                    <input type="text" class="form-control" id="supplierCode">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Người liên hệ</label>
+                                    <input type="text" class="form-control" id="contactName">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email liên hệ</label>
+                                    <input type="email" class="form-control" id="contactEmail">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Số điện thoại</label>
+                                    <input type="text" class="form-control" id="contactPhone">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Điều khoản thanh toán</label>
+                                    <input type="text" class="form-control" id="paymentTerms" placeholder="VD: Net 30">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Địa chỉ</label>
+                                    <input type="text" class="form-control" id="address">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Thành phố</label>
+                                    <input type="text" class="form-control" id="city">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Quốc gia</label>
+                                    <input type="text" class="form-control" id="country" value="Vietnam">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Ghi chú</label>
+                                <textarea class="form-control" id="notes" rows="2"></textarea>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="isActive" checked>
+                                <label class="form-check-label" for="isActive">Hoạt động</label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary" onclick="saveSupplier()">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const supplierModal = new bootstrap.Modal(document.getElementById('supplierModal'));
+            let isEditMode = false;
+
+            // Reset modal when opening for new supplier
+            document.getElementById('supplierModal').addEventListener('show.bs.modal', function (e) {
+                if (!document.getElementById('supplierId').value) {
+                    document.getElementById('modalTitle').textContent = 'Thêm nhà cung cấp';
+                    document.getElementById('supplierForm').reset();
+                    document.getElementById('isActive').checked = true;
+                    document.getElementById('country').value = 'Vietnam';
+                    isEditMode = false;
+                }
+            });
+
+            document.getElementById('supplierModal').addEventListener('hidden.bs.modal', function () {
+                document.getElementById('supplierId').value = '';
+            });
+
+            function openCreateModal() {
+                isEditMode = false;
+                document.getElementById('modalTitle').textContent = 'Thêm nhà cung cấp';
+                document.getElementById('supplierForm').reset();
+                document.getElementById('supplierId').value = '';
+                document.getElementById('isActive').checked = true;
+                document.getElementById('country').value = 'Vietnam';
+                supplierModal.show();
+            }
+
+            function openEditModal(id) {
+                isEditMode = true;
+                document.getElementById('modalTitle').textContent = 'Sửa nhà cung cấp';
+
+                fetch('/admin/api/suppliers/' + id)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('supplierId').value = data.supplierId;
+                        document.getElementById('supplierName').value = data.name || '';
+                        document.getElementById('supplierCode').value = data.code || '';
+                        document.getElementById('contactName').value = data.contactName || '';
+                        document.getElementById('contactEmail').value = data.contactEmail || '';
+                        document.getElementById('contactPhone').value = data.contactPhone || '';
+                        document.getElementById('paymentTerms').value = data.paymentTerms || '';
+                        document.getElementById('address').value = data.address || '';
+                        document.getElementById('city').value = data.city || '';
+                        document.getElementById('country').value = data.country || 'Vietnam';
+                        document.getElementById('notes').value = data.notes || '';
+                        document.getElementById('isActive').checked = data.isActive !== false;
+                        supplierModal.show();
+                    })
+                    .catch(error => {
+                        alert('Không thể tải thông tin nhà cung cấp: ' + error);
+                    });
+            }
+
+            function saveSupplier() {
+                const id = document.getElementById('supplierId').value;
+                const data = {
+                    name: document.getElementById('supplierName').value,
+                    code: document.getElementById('supplierCode').value || null,
+                    contactName: document.getElementById('contactName').value || null,
+                    contactEmail: document.getElementById('contactEmail').value || null,
+                    contactPhone: document.getElementById('contactPhone').value || null,
+                    paymentTerms: document.getElementById('paymentTerms').value || null,
+                    address: document.getElementById('address').value || null,
+                    city: document.getElementById('city').value || null,
+                    country: document.getElementById('country').value || null,
+                    notes: document.getElementById('notes').value || null,
+                    isActive: document.getElementById('isActive').checked
+                };
+
+                if (!data.name) {
+                    alert('Vui lòng nhập tên nhà cung cấp');
+                    return;
+                }
+
+                const url = isEditMode ? '/admin/api/suppliers/' + id : '/admin/api/suppliers';
+                const method = isEditMode ? 'PUT' : 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.error) {
+                            alert('Lỗi: ' + result.error);
+                        } else {
+                            alert(isEditMode ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
+                            supplierModal.hide();
+                            location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        alert('Có lỗi xảy ra: ' + error);
+                    });
+            }
+
+            function deleteSupplier(id) {
+                if (confirm('Bạn có chắc muốn xóa nhà cung cấp này?')) {
+                    fetch('/admin/api/suppliers/' + id, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.message) {
+                                alert(data.message);
+                                location.reload();
+                            } else if (data.error) {
+                                alert('Lỗi: ' + data.error);
+                            }
+                        })
+                        .catch(error => {
+                            alert('Có lỗi xảy ra: ' + error);
+                        });
+                }
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>
